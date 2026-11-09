@@ -206,24 +206,18 @@ footer a { color: var(--accent); }
     </details>
   </section>
 
-  <details class="settings" id="map-settings">
-    <summary>Satellite map</summary>
-    <p class="hint" style="margin-top:8px">The wind compass can sit on NZ aerial photos from LINZ, which are free but need a key. A key is already built in. If the satellite photos stop showing, paste a new LINZ Basemaps key here.</p>
-    <div class="form-actions"><input id="linz-key" type="text" autocomplete="off" spellcheck="false" placeholder="LINZ API key, starts with c01" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;flex:1 1 220px;min-width:0"><button class="btn" type="button" id="linz-save">Save key</button><span class="hint" id="linz-note"></span></div>
-  </details>
-
   <footer>
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 25 · Windy swell and wind links</span>
+    <span>App version 26 · street map under the compass</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 25;
+  var APP_VERSION = 26;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -862,7 +856,7 @@ footer a { color: var(--accent); }
   /* Satellite: LINZ Basemaps aerial imagery (free, CC BY 4.0) needs an API key. Without one the compass sits on an OpenStreetMap street map. */
   var LINZ_KEY_BUILTIN = "c01m719g5pxk60h3yddj2v9tnja";
   var LINZ_KEY_STORE = "surf-trip-linz-key-v1";
-  function linzKey() { return load(LINZ_KEY_STORE) || LINZ_KEY_BUILTIN; }
+  function linzKey() { return ""; } /* satellite turned off: street map only */
   function mapTiles(lat, lon, box) {
     var key = linzKey();
     var z = key ? 15 : 14, n = Math.pow(2, z) * 256;
@@ -1102,17 +1096,6 @@ footer a { color: var(--accent); }
       note.textContent = "Couldn't get your location. Check location access for your browser, or pick the nearest town.";
     }, { timeout: 10000, maximumAge: 600000 });
   });
-
-  (function () {
-    var inp = document.getElementById("linz-key");
-    inp.value = load(LINZ_KEY_STORE) || "";
-    document.getElementById("linz-save").addEventListener("click", function () {
-      var v = inp.value.trim();
-      if (v) store(LINZ_KEY_STORE, v); else { try { localStorage.removeItem(LINZ_KEY_STORE); } catch (e) {} }
-      document.getElementById("linz-note").textContent = v ? "Saved. The compass now uses satellite photos." : "Removed. Using the street map.";
-      if (model && state.spot) { var ds = defaultSlot(); renderCond(ds[0], ds[1]); }
-    });
-  })();
 
   renderOrigin();
   loadForecast(false);
