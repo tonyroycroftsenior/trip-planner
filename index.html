@@ -96,6 +96,11 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .chart-card svg { display: block; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); padding: 0 12px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.why { margin: 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); display: flex; flex-direction: column; gap: 4px; }
+.why .why-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-weight: 600; }
+.why .why-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 13px; }
+.why .why-row span:last-child { font-family: var(--font-data); text-align: right; }
+.why .why-row.weak span:last-child { color: var(--wind-on); }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -149,6 +154,7 @@ footer a { color: var(--accent); }
     <div class="chart-card">
       <div class="top"><div><div class="label" id="chart-sub"></div><h2 id="chart-title"></h2></div><span class="label">scroll sideways for more days</span></div>
       <div class="scroll" id="chart"></div>
+      <div class="why" id="why"><span class="hint">Tap any time slot on the chart to see why it got its score.</span></div>
       <div class="legend">
         <span><i style="background:var(--accent)"></i>Good 70+</span>
         <span><i style="background:var(--fair)"></i>Fair 45 to 69</span>
@@ -169,14 +175,14 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 9 · updates itself when a new version is published</span>
+    <span>App version 10 · tap a time slot to see why it scored that</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 9;
+  var APP_VERSION = 10;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -412,7 +418,8 @@ footer a { color: var(--accent); }
     return d <= 50 ? "offshore" : (d >= 130 ? "onshore" : "cross");
   }
 
-  function scoreSlot(s, c, ti) {
+  function scoreSlot(s, c, ti) { var p = scoreParts(s, c, ti); return p ? p.score : null; }
+  function scoreParts(s, c, ti) {
     var h = c.sh !== null ? c.sh : c.wh;
     var per = c.sp !== null ? c.sp : c.wp;
     var dir = c.sd !== null ? c.sd : c.wd;
@@ -433,7 +440,8 @@ footer a { color: var(--accent); }
       }
     }
     var base = 0.35 * size + 0.2 * period + 0.45 * wind;
-    return Math.round(100 * base * (0.35 + 0.65 * dirScore) * tideFactor(s, ti));
+    var tf = tideFactor(s, ti);
+    return { score: Math.round(100 * base * (0.35 + 0.65 * dirScore) * tf), size: size, period: period, dir: dirScore, wind: wind, tide: tf, h: h, per: per, sdir: dir };
   }
 
   function slotsFor(spotId, di) {
@@ -689,6 +697,7 @@ footer a { color: var(--accent); }
           g += '<rect x="' + (sx + 2) + '" y="' + Y.rate + '" width="' + (SW - 4) + '" height="20" rx="4" style="fill:' + TIER_FILL[t3] + ';opacity:0.18"/>';
           g += txt(scx, Y.rate + 14, x.score + "", { fill: TIER_FILL[t3], size: 10, weight: 500 });
         }
+        g += '<rect class="hit" data-slot="' + d + "," + k + '" x="' + sx + '" y="34" width="' + SW + '" height="' + (Y.end - 34) + '" style="fill:transparent;cursor:pointer"/>';
         if (x.h !== null) g += txt(scx, Y.board, x.h <= 1.0 ? "LB" : "SB", { size: 9, fill: x.h <= 1.0 ? "var(--fair)" : "var(--fg)", weight: 500 });
       });
     });
@@ -704,6 +713,31 @@ footer a { color: var(--accent); }
       '<a href="' + esc(windyUrl) + '" target="_blank" rel="noopener">Windy ↗</a>' +
       '<a href="' + esc(ms.url) + '" target="_blank" rel="noopener">' + esc(ms.label) + " ↗</a>";
   }
+
+  function pct(x) { return Math.round(x * 100) + "%"; }
+  function renderWhy(d, k) {
+    var s = spotById(state.spot);
+    var x = slotsFor(s.id, d)[k], day = model.days[d];
+    var el = document.getElementById("why");
+    var p = scoreParts(s, x.c, x.ti);
+    if (!p) { el.innerHTML = '<span class="hint">No swell data for ' + esc(day.wk + " " + x.lab) + ".</span>"; return; }
+    function row(label, val, f) { return '<div class="why-row' + (f < 0.6 ? " weak" : "") + '"><span>' + esc(label) + "</span><span>" + esc(val) + "</span></div>"; }
+    var windTxt = x.c.ws === null ? "no wind data" : Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" + (x.c.gust !== null ? ", gusts " + Math.round(x.c.gust) : "");
+    var tideTxt = x.ti ? (x.ti.level < 0.33 ? "low" : x.ti.level > 0.67 ? "high" : "mid") + (x.ti.rising === null ? "" : x.ti.rising ? ", rising" : ", falling") : "no tide data";
+    el.innerHTML = '<div class="why-head"><span>' + esc(day.wk + " " + day.d + " · " + x.lab) + "</span><span>score " + p.score + "</span></div>" +
+      row("Swell size " + p.h.toFixed(1) + " m (spot likes " + s.lo + " to " + s.hi + " m)", pct(p.size), p.size) +
+      row("Period " + Math.round(p.per) + " s", pct(p.period), p.period) +
+      row("Swell from " + compass(p.sdir) + " (spot likes " + compass(s.swell) + ")", pct(p.dir), p.dir) +
+      row("Wind " + windTxt + ", offshore here is " + compass(s.offshore), pct(p.wind), p.wind) +
+      row("Tide " + tideTxt + (s.tide !== "any" ? " (spot likes " + s.tide + ")" : ""), pct(p.tide), p.tide) +
+      '<span class="hint">Score = (35% size + 20% period + 45% wind) × swell direction × tide. Red means that part is pulling the score down.</span>';
+  }
+  document.getElementById("chart").addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-slot]") : null;
+    if (!t || !model) return;
+    var a = t.getAttribute("data-slot").split(",");
+    renderWhy(+a[0], +a[1]);
+  });
 
   /* Spot settings form */
   function compassOptions(sel) {
@@ -734,7 +768,7 @@ footer a { color: var(--accent); }
     state.spot = t ? t.bestSpot.id : allSpots().filter(function (s) { return s.region === name; })[0].id;
   }
 
-  function renderSpot() { renderTabs(); renderChart(); renderForm(); }
+  function renderSpot() { renderTabs(); renderChart(); renderForm(); document.getElementById("why").innerHTML = '<span class="hint">Tap any time slot on the chart to see why it got its score.</span>'; }
 
   function renderAll(resetRegion) {
     renderStrip();
