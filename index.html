@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Days Offshore">
-<meta name="theme-color" content="#0b6b63">
+<meta name="theme-color" content="#3f8a82">
 <title>Days Offshore</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -14,12 +14,13 @@
 <style>
 /* Layout: date range strip first, then the best trip and ranked regions, then one spot's swell, wind, tide and weather chart. */
 :root {
-  --bg: #ecefec; --surface: #f8faf8; --fg: #14211f; --muted: #5a6b67; --line: #cfd8d4;
-  --accent: #0b6b63; --accent-soft: #d3e8e3; --fair: #a8741a; --fair-soft: #f1e4c4;
-  --poor: #7b8884; --poor-soft: #e1e6e3; --note: #f3e2d3; --note-fg: #6a3a14;
-  --sun: #e8a317; --cloud: #c3ccc9; --cloud-dark: #8e9a97; --rain: #2f7fc1; --tide: #2f7fc1;
-  --wind-off: #23964a; --wind-on: #d33a2c; --wind-other: #d9a400;
-  --score-good: #23964a; --score-ok: #e07800; --score-bad: #d33a2c;
+  /* Soft sea-glass palette: misty green-grey ground, slate text, muted teal accent, sand yellow from the logo */
+  --bg: #f1f4f2; --surface: #ffffff; --fg: #23383a; --muted: #6c7f7f; --line: #dbe4e1;
+  --accent: #3f8a82; --accent-soft: #e2efec; --fair: #c08a4a; --fair-soft: #f6eadb;
+  --poor: #8a9896; --poor-soft: #e8edeb; --note: #f8eee2; --note-fg: #82562c;
+  --sun: #e5b85a; --sun-soft: #f7ebcd; --cloud: #ccd5d2; --cloud-dark: #98a6a3; --rain: #6197c4; --tide: #6197c4;
+  --wind-off: #4f9a6c; --wind-on: #cd6c5f; --wind-other: #d6a64a;
+  --score-good: #4f9a6c; --score-ok: #d38f4c; --score-bad: #cd6c5f;
   --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -27,12 +28,12 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c1715; --surface: #132320; --fg: #e3ece8; --muted: #93a8a2; --line: #26403b;
-    --accent: #52c4b0; --accent-soft: #15403a; --fair: #e0b04f; --fair-soft: #3a3014;
-    --poor: #8fa09b; --poor-soft: #1d2f2b; --note: #3a2616; --note-fg: #f0cba8;
-    --sun: #f2b93b; --cloud: #6f7f7b; --cloud-dark: #4f5d5a; --rain: #6db3ec; --tide: #6db3ec;
-    --wind-off: #4fd07a; --wind-on: #f2675a; --wind-other: #f2c94c;
-    --score-good: #4fd07a; --score-ok: #f5a142; --score-bad: #f2675a;
+    --bg: #142221; --surface: #1b2c2b; --fg: #e3ece9; --muted: #9db1ad; --line: #2b403d;
+    --accent: #80c2b7; --accent-soft: #223d3a; --fair: #e2b37c; --fair-soft: #3a3020;
+    --poor: #94a5a1; --poor-soft: #22322f; --note: #3a2c1e; --note-fg: #ecd0ae;
+    --sun: #e8c272; --sun-soft: #3b3322; --cloud: #73837f; --cloud-dark: #56645f; --rain: #8fb9de; --tide: #8fb9de;
+    --wind-off: #86c99e; --wind-on: #e99487; --wind-other: #e8c27a;
+    --score-good: #86c99e; --score-ok: #e9b07c; --score-bad: #e99487;
     color-scheme: dark;
   }
 }
@@ -49,13 +50,18 @@ body {
 [hidden] { display: none !important; }
 .wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-h1 { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1.05; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 30px; line-height: 1.05; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h1 .off { color: var(--accent); }
 h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin: 0; text-wrap: balance; }
 .sub { color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 .label { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .brand { display: flex; gap: 14px; align-items: center; }
-.brand .logo { width: 52px; height: 52px; flex: none; border-radius: 12px; }
+.brand .logo { width: 44px; height: 44px; flex: none; border-radius: 11px; }
+.brand-foot { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.brand-foot img { width: 20px; height: 20px; border-radius: 5px; opacity: 0.85; }
+.brand-foot b { font-family: var(--font-display); font-weight: 600; color: var(--fg); }
+.wave-rule { display: block; width: 100%; height: 10px; color: var(--line); }
 .origin { display: flex; flex-direction: column; gap: 6px; }
 .origin-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .origin select { font: inherit; font-size: 15px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; flex: 1 1 180px; min-width: 0; }
@@ -70,8 +76,10 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .rd .dd { font-family: var(--font-display); font-weight: 600; font-size: 18px; line-height: 1.2; }
 .rd .mm { font-size: 10px; color: var(--muted); }
 .rd.far { border-style: dashed; }
-.rd.in { background: var(--accent-soft); border-color: var(--accent-soft); }
-.rd.end { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.rd { position: relative; overflow: hidden; }
+.rd.in, .rd.end { border-top: 5px solid var(--sun); padding-top: 2px; }
+.rd.in { background: var(--accent-soft); border-color: var(--accent-soft); border-top-color: var(--sun); }
+.rd.end { background: var(--accent); border-color: var(--accent); border-top-color: var(--sun); color: var(--surface); }
 .rd.end .dn, .rd.end .mm { color: var(--surface); }
 .range-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .range-line strong { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
@@ -134,9 +142,10 @@ footer a { color: var(--accent); }
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><img class="logo" src="logo.svg" alt="" width="52" height="52"><div><div class="label" id="from-label">Surf trip planner</div><h1>Days Offshore</h1></div></div>
+    <div class="brand"><img class="logo" src="logo.svg" alt="" width="44" height="44"><div><div class="label" id="from-label">Surf trip planner</div><h1>Days <span class="off">Offshore</span></h1></div></div>
     <p class="sub">Pick your days off. See which region has the best surf and weather, then check the swell, wind and tide chart for each spot.</p>
   </header>
+  <svg class="wave-rule" viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 Q 12.5 0 25 5 T 50 5 T 75 5 T 100 5 T 125 5 T 150 5 T 175 5 T 200 5 T 225 5 T 250 5 T 275 5 T 300 5 T 325 5 T 350 5 T 375 5 T 400 5" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
 
   <div class="status">
     <span class="hint" id="fresh">Loading forecast…</span>
@@ -189,16 +198,17 @@ footer a { color: var(--accent); }
   </section>
 
   <footer>
+    <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 15 · renamed Days Offshore, new logo</span>
+    <span>App version 16 · softer colours</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 15;
+  var APP_VERSION = 16;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
