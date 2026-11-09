@@ -133,7 +133,7 @@ footer a { color: var(--accent); }
     <h2 id="trip-h">Best trip for these days</h2>
     <div id="best"><div class="loading">Fetching swell and weather for 14 spots…</div></div>
     <div class="rank" id="rank"></div>
-    <p class="hint">Trip score is 65% surf at the best spot each day and 35% weather, minus a drive penalty that is bigger on short trips. Tap a region to see its spots.</p>
+    <p class="hint">Trip score is 65% surf at the best spot each day and 35% weather. Drive time is shown but doesn't change the score. Tap a region to see its spots.</p>
   </section>
 
   <section class="stack" aria-labelledby="spot-h" id="spot-section">
@@ -464,8 +464,7 @@ footer a { color: var(--accent); }
     if (withSurf.length) {
       surf = Math.round(withSurf.reduce(function (a, x) { return a + x.pick.slot.score; }, 0) / withSurf.length);
       var tot = withSurf.reduce(function (a, x) { return a + 0.65 * x.pick.slot.score + 0.35 * (x.wx === null ? 60 : x.wx); }, 0) / withSurf.length;
-      var pen = Math.min(25, 12 * drive / len);
-      trip = { score: Math.max(0, Math.round(tot - pen)), pen: Math.round(pen) };
+      trip = { score: Math.max(0, Math.round(tot)) };
     }
     var rain = 0;
     days.forEach(function (d) { var r = model.spots[list[0].id][d].wx.rain; if (r) rain += r; });
@@ -512,7 +511,7 @@ footer a { color: var(--accent); }
     document.getElementById("rank").innerHTML = trips.map(function (x) {
       var sc = x.trip ? x.trip.score : "–";
       return '<button type="button" class="rank-item" data-region="' + esc(x.name) + '" aria-pressed="' + (state.region === x.name) + '"><span class="nm">' + esc(x.name) + '</span><span class="sc">' + sc + '</span>' +
-        '<span class="meta">surf ' + (x.surf === null ? "–" : x.surf) + " · rain " + x.rain + " mm · drive " + x.drive + " h" + (x.trip && x.trip.pen ? " · −" + x.trip.pen + " for driving" : "") + (x.missing ? " · " + x.missing + " day" + (x.missing > 1 ? "s" : "") + " without swell data" : "") + '</span>' +
+        '<span class="meta">surf ' + (x.surf === null ? "–" : x.surf) + " · rain " + x.rain + " mm · drive " + x.drive + " h" + (x.missing ? " · " + x.missing + " day" + (x.missing > 1 ? "s" : "") + " without swell data" : "") + '</span>' +
         '<span class="bar"><i style="width:' + (x.trip ? x.trip.score : 0) + '%"></i></span></button>';
     }).join("");
   }
