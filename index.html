@@ -18,6 +18,7 @@
   --poor: #7b8884; --poor-soft: #e1e6e3; --note: #f3e2d3; --note-fg: #6a3a14;
   --sun: #e8a317; --cloud: #c3ccc9; --cloud-dark: #8e9a97; --rain: #2f7fc1; --tide: #2f7fc1;
   --wind-off: #23964a; --wind-on: #d33a2c; --wind-other: #d9a400;
+  --score-good: #23964a; --score-ok: #e07800; --score-bad: #d33a2c;
   --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -30,6 +31,7 @@
     --poor: #8fa09b; --poor-soft: #1d2f2b; --note: #3a2616; --note-fg: #f0cba8;
     --sun: #f2b93b; --cloud: #6f7f7b; --cloud-dark: #4f5d5a; --rain: #6db3ec; --tide: #6db3ec;
     --wind-off: #4fd07a; --wind-on: #f2675a; --wind-other: #f2c94c;
+    --score-good: #4fd07a; --score-ok: #f5a142; --score-bad: #f2675a;
     color-scheme: dark;
   }
 }
@@ -83,8 +85,10 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .rank-item .nm { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
 .scores { display: flex; gap: 12px; align-items: baseline; justify-content: flex-end; }
 .pill { display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-data); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.pill b { font-size: 20px; font-weight: 500; color: var(--accent); letter-spacing: 0; }
-.pill.wx b { color: var(--rain); }
+.pill b { font-size: 20px; font-weight: 500; color: var(--fg); letter-spacing: 0; }
+.pill b.good { color: var(--score-good); }
+.pill b.fair { color: var(--score-ok); }
+.pill b.poor { color: var(--score-bad); }
 .best .pill b { font-size: 26px; }
 .rank-item .meta { font-family: var(--font-data); font-size: 11px; color: var(--muted); grid-column: 1 / -1; }
 .bar { grid-column: 1 / -1; height: 5px; background: var(--poor-soft); border-radius: 3px; overflow: hidden; }
@@ -157,9 +161,9 @@ footer a { color: var(--accent); }
       <div class="scroll" id="chart"></div>
       <div class="why" id="why"><span class="hint">Tap any time slot on the chart to see why it got its score.</span></div>
       <div class="legend">
-        <span><i style="background:var(--accent)"></i>Good 70+</span>
-        <span><i style="background:var(--fair)"></i>Fair 45 to 69</span>
-        <span><i style="background:var(--poor)"></i>Poor under 45</span>
+        <span><i style="background:var(--score-good)"></i>Good 80+</span>
+        <span><i style="background:var(--score-ok)"></i>OK 60 to 79</span>
+        <span><i style="background:var(--score-bad)"></i>Poor under 60</span>
         <span><i style="background:var(--wind-off)"></i>Offshore wind</span><span><i style="background:var(--wind-on)"></i>Onshore wind</span><span><i style="background:var(--wind-other)"></i>Cross-shore or light wind</span>
         <span>Board: LB longboard (swell 1.0 m or less), SB shortboard (over 1.0 m)</span>
       </div>
@@ -176,14 +180,14 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 11 · daily wind summary in the trip plan</span>
+    <span>App version 12 · scores coloured green, orange and red</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 11;
+  var APP_VERSION = 12;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -246,8 +250,8 @@ footer a { color: var(--accent); }
   function angDiff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function tier(s) { return s >= 70 ? "good" : (s >= 45 ? "fair" : "poor"); }
-  var TIER_FILL = { good: "var(--accent)", fair: "var(--fair)", poor: "var(--poor)" };
+  function tier(s) { return s >= 80 ? "good" : (s >= 60 ? "fair" : "poor"); }
+  var TIER_FILL = { good: "var(--score-good)", fair: "var(--score-ok)", poor: "var(--score-bad)" };
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function load(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
 
@@ -552,7 +556,7 @@ footer a { color: var(--accent); }
     document.getElementById("rank").innerHTML = trips.map(function (x) {
       return '<button type="button" class="rank-item" data-region="' + esc(x.name) + '" aria-pressed="' + (state.region === x.name) + '"><span class="nm">' + esc(x.name) + '</span>' + scorePills(x) +
         '<span class="meta">rain ' + x.rain + " mm · drive " + x.drive + " h" + (x.missing ? " · " + x.missing + " day" + (x.missing > 1 ? "s" : "") + " without swell data" : "") + '</span>' +
-        '<span class="bar"><i style="width:' + (x.trip ? x.trip.score : 0) + '%"></i></span></button>';
+        '<span class="bar"><i style="width:' + (x.trip ? x.trip.score : 0) + '%;background:' + (x.trip ? TIER_FILL[tier(x.trip.score)] : "var(--line)") + '"></i></span></button>';
     }).join("");
   }
 
@@ -588,7 +592,8 @@ footer a { color: var(--accent); }
     return out.charAt(0).toUpperCase() + out.slice(1);
   }
   function scorePills(x) {
-    return '<span class="scores"><span class="pill"><b>' + (x.trip ? x.trip.score : "–") + '</b>waves</span><span class="pill wx"><b>' + (x.wx === null ? "–" : x.wx) + "</b>weather</span></span>";
+    function b(v) { return v === null || v === undefined ? "<b>–</b>" : '<b class="' + tier(v) + '">' + v + "</b>"; }
+    return '<span class="scores"><span class="pill">' + b(x.trip ? x.trip.score : null) + 'waves</span><span class="pill wx">' + b(x.wx) + "weather</span></span>";
   }
   function dayWx(x) {
     var wx = model.spots[x.pick.spot.id][x.day].wx;
