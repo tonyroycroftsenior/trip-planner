@@ -1,0 +1,9 @@
+{
+  "minSwell": 0.5,
+  "minHours": 4,
+  "countLightWind": true,
+  "minDays": 2,
+  "startHour": 5,
+  "endHour": 20,
+  "regions": ["Mount Maunganui", "Ohope", "Coromandel", "Raglan", "Taranaki", "Gisborne", "East Cape", "Mahia"]
+}

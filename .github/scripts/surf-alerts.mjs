@@ -12,6 +12,9 @@ const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const listText = html.match(/var SPOTS_DEFAULT = (\[[\s\S]*?\n  \]);/)[1];
 const SPOTS = new Function("return " + listText)();
 const REGIONS = new Function("return " + html.match(/var REGIONS = (\[[^\]]*\]);/)[1])();
+const CFG = Object.assign({ minSwell: 0.5, minHours: 4, countLightWind: true, minDays: 2, startHour: 5, endHour: 20, regions: REGIONS },
+  JSON.parse(readFileSync(new URL("../../alerts.json", import.meta.url), "utf8")));
+console.log("Alert settings:", JSON.stringify(CFG));
 
 const angDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 function seaPoint(s, km) {
@@ -44,28 +47,28 @@ function goodWindow(i, date) {
   const s = SPOTS[i], w = weather[i].hourly, m = marine[i]?.hourly || {};
   const mIdx = new Map((m.time || []).map((t, k) => [t, k]));
   let best = null, cur = null;
-  for (let h = 5; h <= 20; h++) {
+  for (let h = CFG.startHour; h <= CFG.endHour; h++) {
     const t = `${date}T${String(h).padStart(2, "0")}:00`;
     const wi = w.time.indexOf(t), mi = mIdx.get(t);
     const sw = mi === undefined ? null : (m.swell_wave_height?.[mi] ?? m.wave_height?.[mi] ?? null);
     const ws = wi < 0 ? null : w.wind_speed_10m[wi], wd = wi < 0 ? null : w.wind_direction_10m[wi];
-    const ok = sw !== null && sw >= 0.5 && ws !== null && wd !== null && (ws <= 5 || angDiff(wd, s.offshore) <= 50);
+    const ok = sw !== null && sw >= CFG.minSwell && ws !== null && wd !== null && ((CFG.countLightWind && ws <= 5) || angDiff(wd, s.offshore) <= 50);
     if (ok) {
       if (!cur) cur = { start: h, end: h, sw: [], ws: [] };
       cur.end = h; cur.sw.push(sw); cur.ws.push(ws);
       if (!best || cur.end - cur.start > best.end - best.start) best = cur;
     } else cur = null;
   }
-  if (!best || best.end - best.start + 1 < 4) return null;
+  if (!best || best.end - best.start + 1 < CFG.minHours) return null;
   return { ...best, len: best.end - best.start + 1, swell: Math.max(...best.sw), wind: Math.round(best.ws.reduce((a, b) => a + b, 0) / best.ws.length) };
 }
 
 const fmtDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const runs = [];
-for (const region of REGIONS) {
+for (const region of REGIONS.filter(r => CFG.regions.includes(r))) {
   const idx = SPOTS.map((s, i) => s.region === region ? i : -1).filter(i => i >= 0);
   let run = [];
-  const flush = () => { if (run.length >= 2) runs.push({ region, days: run }); run = []; };
+  const flush = () => { if (run.length >= CFG.minDays) runs.push({ region, days: run }); run = []; };
   for (const date of dates) {
     let pick = null;
     for (const i of idx) { const w = goodWindow(i, date); if (w && (!pick || w.len > pick.w.len || (w.len === pick.w.len && w.swell > pick.w.swell))) pick = { s: SPOTS[i], w }; }
@@ -93,6 +96,6 @@ const sections = fresh.map(r => {
   return `### ${r.region}: ${fmtDay(r.days[0].date)} – ${fmtDay(r.days.at(-1).date)} (${r.days.length} days)\n<!-- run:${r.region}|${r.days[0].date} -->\n${lines.join("\n")}`;
 });
 const title = `Good surf runs: ${fresh.map(r => r.region).filter((v, i, a) => a.indexOf(v) === i).join(", ")}`;
-const body = `@${owner} New runs of 2+ good days in a row:\n\n${sections.join("\n\n")}\n\n[Open Days Offshore](${APP_URL})\n\n_Good day: swell 0.5 m or more and at least 4 hours of offshore or light wind between 5am and 8pm. Forecast from Open-Meteo._`;
+const body = `@${owner} New runs of ${CFG.minDays}+ good days in a row:\n\n${sections.join("\n\n")}\n\n[Open Days Offshore](${APP_URL})\n\n_Good day: swell ${CFG.minSwell} m or more and at least ${CFG.minHours} hours of offshore${CFG.countLightWind ? " or light" : ""} wind between ${clock(CFG.startHour)} and ${clock(CFG.endHour)}. Change these in Alert settings in the app. Forecast from Open-Meteo._`;
 const res = await gh("/issues", { method: "POST", body: JSON.stringify({ title, body }) });
 console.log(res.ok ? "Sent: " + title : "Failed: " + res.status + " " + (await res.text()).slice(0, 200));
