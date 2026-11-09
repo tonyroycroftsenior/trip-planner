@@ -169,13 +169,22 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 8 · Mount Maunganui, Ohope and Taranaki added</span>
+    <span>App version 9 · updates itself when a new version is published</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
+  var APP_VERSION = 9;
+  /* Phones keep old copies of the page. Check for a newer published version and load it. */
+  (function checkForUpdate() {
+    if (!window.fetch || location.protocol === "file:") return;
+    fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+      var m = t.match(/var APP_VERSION = (\d+);/);
+      if (m && +m[1] > APP_VERSION) location.replace(location.pathname + "?v=" + m[1]);
+    }).catch(function () {});
+  })();
   var TZ = "Pacific/Auckland";
   var NDAYS = 14;
   var SLOT_HOURS = [6, 9, 12, 15, 18];
