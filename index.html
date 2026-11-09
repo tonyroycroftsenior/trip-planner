@@ -72,8 +72,9 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .best .big { font-family: var(--font-data); font-size: 26px; font-weight: 500; color: var(--accent); }
 .plan { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .plan li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 4px; }
-.plan li span:first-child { font-family: var(--font-data); font-size: 12px; color: var(--muted); flex: none; }
-.plan li span:last-child { text-align: right; min-width: 0; }
+.plan li > span:first-child { font-family: var(--font-data); font-size: 12px; color: var(--muted); flex: none; }
+.plan li > span:last-child { text-align: right; min-width: 0; }
+.plan .windline { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
 .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
 .row span:last-child { font-family: var(--font-data); text-align: right; }
 .rank { display: flex; flex-direction: column; gap: 8px; }
@@ -175,14 +176,14 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 10 · tap a time slot to see why it scored that</span>
+    <span>App version 11 · daily wind summary in the trip plan</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 10;
+  var APP_VERSION = 11;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -543,7 +544,7 @@ footer a { color: var(--accent); }
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
-        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ") · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.h) + dayWx(x) : "no swell data yet") + "</span></li>";
+        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ") · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.h) + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
       });
       html += "</ul></div>";
     }
@@ -556,6 +557,36 @@ footer a { color: var(--accent); }
   }
 
   function board(h) { return h <= 1.0 ? "longboard" : "shortboard"; }
+  function clock(h) { return h === 0 || h === 24 ? "12am" : h < 12 ? h + "am" : h === 12 ? "12pm" : (h - 12) + "pm"; }
+  var WIND_WORD = { offshore: "offshore", onshore: "onshore", cross: "cross-shore", light: "light" };
+  /* Short daylight wind story for one spot and day, e.g. "offshore 10 kts till 1pm, then onshore 5 kts" */
+  function windSummary(s, d) {
+    var dd = model.spots[s.id][d], segs = [];
+    for (var h = 6; h <= 19; h++) {
+      var c = dd.hour(h);
+      if (c.ws === null || c.wdir === null) continue;
+      var k = windKind(s, c), last = segs[segs.length - 1];
+      if (last && last.kind === k) { last.end = h; last.sp.push(c.ws); }
+      else segs.push({ kind: k, start: h, end: h, sp: [c.ws] });
+    }
+    /* Smooth out one-hour blips between two stretches of the same wind */
+    for (var i = 1; i < segs.length - 1;) {
+      if (segs[i].end === segs[i].start && segs[i - 1].kind === segs[i + 1].kind) {
+        segs[i - 1].end = segs[i + 1].end;
+        segs[i - 1].sp = segs[i - 1].sp.concat(segs[i].sp, segs[i + 1].sp);
+        segs.splice(i, 2);
+      } else i++;
+    }
+    if (!segs.length) return "no wind data";
+    var parts = segs.slice(0, 4).map(function (g, n) {
+      var lo = Math.round(Math.min.apply(null, g.sp)), hi = Math.round(Math.max.apply(null, g.sp));
+      var spd = hi - lo >= 4 ? lo + "–" + hi + " kts" : Math.round(g.sp.reduce(function (a, b) { return a + b; }, 0) / g.sp.length) + " kts";
+      var till = n < segs.length - 1 ? " till " + clock(g.end + 1) : "";
+      return (n ? "then " : "") + WIND_WORD[g.kind] + " " + spd + till;
+    });
+    var out = parts.join(", ");
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
   function scorePills(x) {
     return '<span class="scores"><span class="pill"><b>' + (x.trip ? x.trip.score : "–") + '</b>waves</span><span class="pill wx"><b>' + (x.wx === null ? "–" : x.wx) + "</b>weather</span></span>";
   }
