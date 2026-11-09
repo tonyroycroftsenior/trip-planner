@@ -127,6 +127,13 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .compass.sat svg circle:not([r="3.5"]) { stroke: #fff !important; opacity: 0.9 !important; }
 .compass.sat svg circle[r="3.5"] { fill: #fff !important; stroke: none; }
 .compass .attr { position: absolute; right: 4px; bottom: 2px; font-size: 8px; color: var(--fg); background: color-mix(in srgb, var(--surface) 70%, transparent); padding: 0 3px; border-radius: 3px; }
+.runs { display: flex; flex-direction: column; gap: 8px; }
+.run { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.run:hover { border-color: var(--score-good); }
+.run .run-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.run .run-head b { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+.run .run-head span { font-family: var(--font-data); font-size: 12px; color: var(--score-good); }
+.run .run-day { font-size: 13px; color: var(--muted); }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -173,6 +180,12 @@ footer a { color: var(--accent); }
     <div class="range-line"><strong id="range-text"></strong><span class="label" id="range-len"></span></div>
   </section>
 
+  <section class="stack" aria-labelledby="runs-h">
+    <h2 id="runs-h">Good runs coming up</h2>
+    <p class="hint">Two or more days in a row with swell of 0.5 m or more and at least 4 hours of offshore or light wind in daylight. Tap one to plan it.</p>
+    <div class="runs" id="runs"></div>
+  </section>
+
   <section class="stack" aria-labelledby="trip-h" aria-live="polite">
     <h2 id="trip-h">Best trip for these days</h2>
     <div id="best"><div class="loading">Fetching swell and weather for all your spots…</div></div>
@@ -210,14 +223,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 26 · street map under the compass</span>
+    <span>App version 27 · good runs and daily alerts</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 26;
+  var APP_VERSION = 27;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -599,6 +612,49 @@ footer a { color: var(--accent); }
     document.getElementById("range-text").textContent = days[state.start].full + (n > 1 ? " to " + days[state.end].full : "");
     document.getElementById("range-len").textContent = n + (n === 1 ? " day" : " days") + (state.end >= 7 ? " · dashed days are a rough forecast" : "");
     document.getElementById("pick-hint").textContent = state.picking === "end" ? "Now tap your last day off." : "Tap your first day off, then your last.";
+  }
+
+  /* A good day at a spot: at least 4 straight daylight hours (5am-8pm) with swell 0.5 m+ and offshore or light wind */
+  function goodWindow(s, d) {
+    var dd = model.spots[s.id][d], best = null, cur = null;
+    for (var h = 5; h <= 20; h++) {
+      var c = dd.hour(h), sw = c.sh !== null ? c.sh : c.wh;
+      var ok = sw !== null && sw >= 0.5 && c.ws !== null && c.wdir !== null && (c.ws <= 5 || angDiff(c.wdir, s.offshore) <= 50);
+      if (ok) {
+        if (!cur) cur = { start: h, end: h, sw: [], ws: [] };
+        cur.end = h; cur.sw.push(sw); cur.ws.push(c.ws);
+        if (!best || cur.end - cur.start > best.end - best.start) best = cur;
+      } else cur = null;
+    }
+    if (!best || best.end - best.start + 1 < 4) return null;
+    best.len = best.end - best.start + 1;
+    best.swell = Math.max.apply(null, best.sw);
+    best.wind = Math.round(best.ws.reduce(function (a, b) { return a + b; }, 0) / best.ws.length);
+    return best;
+  }
+  function goodRuns() {
+    var out = [];
+    REGIONS.forEach(function (r) {
+      var list = allSpots().filter(function (s) { return s.region === r; });
+      var run = [];
+      function flush() { if (run.length >= 2) out.push({ region: r, days: run.slice() }); run = []; }
+      for (var d = 0; d < model.days.length; d++) {
+        var pick = null;
+        list.forEach(function (s) { var w = goodWindow(s, d); if (w && (!pick || w.len > pick.w.len || (w.len === pick.w.len && w.swell > pick.w.swell))) pick = { s: s, w: w }; });
+        if (pick) run.push({ d: d, s: pick.s, w: pick.w }); else flush();
+      }
+      flush();
+    });
+    return out.sort(function (a, b) { return a.days[0].d - b.days[0].d || b.days.length - a.days.length; });
+  }
+  function renderRuns() {
+    var runs = goodRuns(), el = document.getElementById("runs");
+    if (!runs.length) { el.innerHTML = '<p class="hint">No runs of 2 or more good days in the forecast right now.</p>'; return; }
+    el.innerHTML = runs.map(function (r) {
+      var a = model.days[r.days[0].d], b = model.days[r.days[r.days.length - 1].d];
+      return '<button type="button" class="run" data-run="' + r.days[0].d + "," + r.days[r.days.length - 1].d + '" data-run-region="' + esc(r.region) + '"><span class="run-head"><b>' + esc(r.region) + "</b><span>" + esc(a.wk + " " + a.d + " – " + b.wk + " " + b.d + " " + b.m) + " · " + r.days.length + " days</span></span>" +
+        r.days.map(function (x) { var dy = model.days[x.d]; return '<span class="run-day">' + esc(dy.wk + ": " + x.s.name + ", offshore " + clock(x.w.start) + "–" + clock(x.w.end + 1) + " · " + x.w.swell.toFixed(1) + " m · " + x.w.wind + " kts") + "</span>"; }).join("") + "</button>";
+    }).join("");
   }
 
   function renderTrips() {
@@ -984,6 +1040,7 @@ footer a { color: var(--accent); }
 
   function renderAll(resetRegion) {
     renderStrip();
+    renderRuns();
     renderTrips();
     if (resetRegion || !state.region) chooseRegion(trips[0].name);
     renderTrips();
@@ -1045,6 +1102,13 @@ footer a { color: var(--accent); }
       else if (d < state.start) { state.start = d; }
       else { state.end = d; state.picking = "start"; }
       renderAll(true);
+      return;
+    }
+    if (t.hasAttribute("data-run")) {
+      var rr = t.getAttribute("data-run").split(",");
+      state.start = +rr[0]; state.end = +rr[1]; state.picking = "start";
+      renderStrip(); renderTrips(); chooseRegion(t.getAttribute("data-run-region")); renderTrips(); renderSpot();
+      try { document.getElementById("trip-h").scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
       return;
     }
     if (t.hasAttribute("data-region")) {

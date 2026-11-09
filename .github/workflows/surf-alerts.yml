@@ -1,0 +1,20 @@
+name: Surf alerts
+
+on:
+  schedule:
+    - cron: "41 17 * * *"   # 6:41am NZDT (5:41am NZST) every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check forecast for good runs
+        run: node .github/scripts/surf-alerts.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
