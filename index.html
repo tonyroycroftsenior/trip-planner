@@ -121,6 +121,11 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .compass .tiles { position: absolute; inset: 0; filter: grayscale(0.55) sepia(0.35) brightness(1.02) contrast(0.9); opacity: 0.75; }
 .compass .tiles img { position: absolute; width: 256px; height: 256px; max-width: none; }
 .compass svg { position: absolute; inset: 0; }
+.compass.sat .tiles { filter: brightness(0.82) saturate(0.9); opacity: 1; }
+.compass.sat svg circle, .compass.sat svg text { stroke: #fff; }
+.compass.sat svg text { fill: #fff !important; stroke: rgba(0,0,0,0.55); stroke-width: 2.5px; paint-order: stroke; }
+.compass.sat svg circle:not([r="3.5"]) { stroke: #fff !important; opacity: 0.9 !important; }
+.compass.sat svg circle[r="3.5"] { fill: #fff !important; stroke: none; }
 .compass .attr { position: absolute; right: 4px; bottom: 2px; font-size: 8px; color: var(--fg); background: color-mix(in srgb, var(--surface) 70%, transparent); padding: 0 3px; border-radius: 3px; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
@@ -201,18 +206,24 @@ footer a { color: var(--accent); }
     </details>
   </section>
 
+  <details class="settings" id="map-settings">
+    <summary>Satellite map</summary>
+    <p class="hint" style="margin-top:8px">The wind compass can sit on NZ aerial photos from LINZ, which are free but need a key. Paste your LINZ Basemaps API key here. Until then it uses a street map.</p>
+    <div class="form-actions"><input id="linz-key" type="text" autocomplete="off" spellcheck="false" placeholder="LINZ API key, starts with c01" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;flex:1 1 220px;min-width:0"><button class="btn" type="button" id="linz-save">Save key</button><span class="hint" id="linz-note"></span></div>
+  </details>
+
   <footer>
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 20 · surf height in feet and wind compass</span>
+    <span>App version 21 · satellite compass map (LINZ)</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 20;
+  var APP_VERSION = 21;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -846,15 +857,23 @@ footer a { color: var(--accent); }
   }
 
   function pct(x) { return Math.round(x * 100) + "%"; }
+  /* Satellite: LINZ Basemaps aerial imagery (free, CC BY 4.0) needs an API key. Without one the compass sits on an OpenStreetMap street map. */
+  var LINZ_KEY_BUILTIN = "";
+  var LINZ_KEY_STORE = "surf-trip-linz-key-v1";
+  function linzKey() { return load(LINZ_KEY_STORE) || LINZ_KEY_BUILTIN; }
   function mapTiles(lat, lon, box) {
-    var z = 13, n = Math.pow(2, z) * 256;
+    var key = linzKey();
+    var z = key ? 15 : 14, n = Math.pow(2, z) * 256;
     var x = (lon + 180) / 360 * n;
     var r = lat * Math.PI / 180;
     var y = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n;
     var x0 = x - box / 2, y0 = y - box / 2, h = "";
     for (var tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + box) / 256); tx++)
-      for (var ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + box) / 256); ty++)
-        h += '<img alt="" loading="lazy" src="https://tile.openstreetmap.org/' + z + "/" + tx + "/" + ty + '.png" style="left:' + Math.round(tx * 256 - x0) + "px;top:" + Math.round(ty * 256 - y0) + 'px">';
+      for (var ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + box) / 256); ty++) {
+        var src = key ? "https://basemaps.linz.govt.nz/v1/tiles/aerial/3857/" + z + "/" + tx + "/" + ty + ".png?api=" + encodeURIComponent(key)
+                      : "https://tile.openstreetmap.org/" + z + "/" + tx + "/" + ty + ".png";
+        h += '<img alt="" loading="lazy" src="' + src + '" style="left:' + Math.round(tx * 256 - x0) + "px;top:" + Math.round(ty * 256 - y0) + 'px">';
+      }
     return h;
   }
   function polar(cx, cy, r, deg) { var a = deg * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }
@@ -900,7 +919,7 @@ footer a { color: var(--accent); }
       '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + " · " + board(x.h)) + "</div></div>" +
       '<div><div class="label">Wind</div><div class="big" style="font-size:20px">' + esc(windTxt) + '</div><div class="sub2" style="color:' + windCol + ';font-weight:600">' + esc(kindWord) + "</div></div>" +
       '<div><div class="label">Swell</div><div class="lines">' + line("var(--sun)", c.sh, c.sp, c.sd, "swell") + line("var(--accent)", c.wwh, c.wwp, c.wwd, "wind waves") + "</div></div></div>" +
-      '<div class="compass"><div class="tiles">' + mapTiles(s.lat, s.lon, 200) + "</div>" + compassSVG(s, x) + '<span class="attr">© OpenStreetMap</span></div>';
+      '<div class="compass' + (linzKey() ? " sat" : "") + '"><div class="tiles">' + mapTiles(s.lat, s.lon, 200) + "</div>" + compassSVG(s, x) + '<span class="attr">' + (linzKey() ? "Imagery © LINZ CC BY 4.0" : "© OpenStreetMap") + "</span></div>";
   }
   function defaultSlot() {
     var d = state.start, k = 1;
@@ -1081,6 +1100,17 @@ footer a { color: var(--accent); }
       note.textContent = "Couldn't get your location. Check location access for your browser, or pick the nearest town.";
     }, { timeout: 10000, maximumAge: 600000 });
   });
+
+  (function () {
+    var inp = document.getElementById("linz-key");
+    inp.value = load(LINZ_KEY_STORE) || "";
+    document.getElementById("linz-save").addEventListener("click", function () {
+      var v = inp.value.trim();
+      if (v) store(LINZ_KEY_STORE, v); else { try { localStorage.removeItem(LINZ_KEY_STORE); } catch (e) {} }
+      document.getElementById("linz-note").textContent = v ? "Saved. The compass now uses satellite photos." : "Removed. Using the street map.";
+      if (model && state.spot) { var ds = defaultSlot(); renderCond(ds[0], ds[1]); }
+    });
+  })();
 
   renderOrigin();
   loadForecast(false);
