@@ -151,6 +151,7 @@ footer a { color: var(--accent); }
         <span><i style="background:var(--fair)"></i>Fair 45 to 69</span>
         <span><i style="background:var(--poor)"></i>Poor under 45</span>
         <span>Wind arrows: teal offshore or light, amber cross-shore, grey onshore</span>
+        <span>Board: LB longboard (swell 1.0 m or less), SB shortboard (over 1.0 m)</span>
       </div>
     </div>
     <div class="links" id="links"></div>
@@ -165,7 +166,7 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 3 · waves and weather scored separately</span>
+    <span>App version 4 · longboard and shortboard labels</span>
   </footer>
 </div>
 
@@ -508,7 +509,7 @@ footer a { color: var(--accent); }
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
-        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ")" + dayWx(x) : "no swell data yet") + "</span></li>";
+        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ") · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.h) + dayWx(x) : "no swell data yet") + "</span></li>";
       });
       html += "</ul></div>";
     }
@@ -520,6 +521,7 @@ footer a { color: var(--accent); }
     }).join("");
   }
 
+  function board(h) { return h <= 1.0 ? "longboard" : "shortboard"; }
   function scorePills(x) {
     return '<span class="scores"><span class="pill"><b>' + (x.trip ? x.trip.score : "–") + '</b>waves</span><span class="pill wx"><b>' + (x.wx === null ? "–" : x.wx) + "</b>weather</span></span>";
   }
@@ -579,7 +581,7 @@ footer a { color: var(--accent); }
     var days = rangeDays();
     var NS = SLOT_HOURS.length, SW = 28, DW = SW * NS, PADL = 50;
     var W = PADL + days.length * DW + 8;
-    var Y = { wx: 34, bars: 112, barsH: 104, slot: 230, sdir: 252, per: 276, wind: 298, ws: 320, tide: 334, tideH: 34, rate: 382, end: 406 };
+    var Y = { wx: 34, bars: 112, barsH: 104, slot: 230, sdir: 252, per: 276, wind: 298, ws: 320, tide: 334, tideH: 34, rate: 382, board: 420, end: 432 };
     var all = days.map(function (d) { return slotsFor(s.id, d); });
     var maxH = 0;
     all.forEach(function (sl) { sl.forEach(function (x) { if (x.h !== null) maxH = Math.max(maxH, x.h); }); });
@@ -593,6 +595,7 @@ footer a { color: var(--accent); }
     g += txt(4, Y.ws + 3, "knots", { anchor: "start", size: 9 });
     g += txt(4, Y.tide + Y.tideH / 2 + 3, "tide", { anchor: "start", size: 9 });
     g += txt(4, Y.rate + 14, "rating", { anchor: "start", size: 9 });
+    g += txt(4, Y.board, "board", { anchor: "start", size: 9 });
     for (var mm = 1; mm <= yMax; mm++) {
       g += '<line x1="' + PADL + '" x2="' + (W - 8) + '" y1="' + yOf(mm) + '" y2="' + yOf(mm) + '" style="stroke:var(--line);stroke-width:1"/>';
       g += txt(PADL - 6, yOf(mm) + 3, mm + "", { anchor: "end", size: 9 });
@@ -642,7 +645,7 @@ footer a { color: var(--accent); }
           var ty2 = x.score !== null ? tier(x.score) : "poor";
           var top = yOf(x.h);
           var tip = day.wk + " " + x.lab + ": " + x.h.toFixed(1) + " m, " + (x.p !== null ? Math.round(x.p) + " s" : "") + (x.d !== null ? " from " + compass(x.d) : "") +
-            (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "");
+            (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "") + ", " + board(x.h);
           g += '<rect x="' + (sx + 4) + '" y="' + top + '" width="' + (SW - 8) + '" height="' + Math.max(1, yOf(0) - top) + '" rx="2" style="fill:' + TIER_FILL[ty2] + '"><title>' + esc(tip) + "</title></rect>";
           g += txt(scx, top - 4, x.h.toFixed(1), { fill: "var(--fg)", size: 9 });
           if (x.d !== null) g += arrow(scx, Y.sdir, x.d, "var(--fg)", 0.85);
@@ -660,6 +663,7 @@ footer a { color: var(--accent); }
           g += '<rect x="' + (sx + 2) + '" y="' + Y.rate + '" width="' + (SW - 4) + '" height="20" rx="4" style="fill:' + TIER_FILL[t3] + ';opacity:0.18"/>';
           g += txt(scx, Y.rate + 14, x.score + "", { fill: TIER_FILL[t3], size: 10, weight: 500 });
         }
+        if (x.h !== null) g += txt(scx, Y.board, x.h <= 1.0 ? "LB" : "SB", { size: 9, fill: x.h <= 1.0 ? "var(--fair)" : "var(--fg)", weight: 500 });
       });
     });
     var svg = '<svg width="' + W + '" height="' + Y.end + '" viewBox="0 0 ' + W + " " + Y.end + '" role="img" aria-label="Swell, wind, tide and weather chart for ' + esc(s.name) + '">' + g + "</svg>";
