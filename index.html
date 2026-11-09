@@ -99,6 +99,7 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
+.links a.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; }
 details.settings { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 details.settings summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 14px; margin-top: 12px; }
@@ -168,7 +169,7 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 5 · green, yellow and red wind arrows</span>
+    <span>App version 6 · Swellmap link for each spot</span>
   </footer>
 </div>
 
@@ -195,19 +196,19 @@ footer a { color: var(--accent); }
      lo/hi = swell height range in metres it handles well; tide = any|low|mid|high; rising = prefers a rising tide; drive = hours from Mount */
   var SPOTS_DEFAULT = [
     { id: "mount", name: "Mount Main Beach", region: "Bay of Plenty", lat: -37.632, lon: 176.180, offshore: 200, swell: 30, width: 50, lo: 0.7, hi: 2.4, tide: "any", rising: false, drive: 0.1, ms: "tauranga" },
-    { id: "waihi", name: "Waihi Beach", region: "Coromandel", lat: -37.405, lon: 175.940, offshore: 240, swell: 60, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.0, ms: "index" },
-    { id: "whangamata", name: "Whangamata", region: "Coromandel", lat: -37.220, lon: 175.880, offshore: 225, swell: 45, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 1.5, ms: "index", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/whangamata" },
+    { id: "waihi", name: "Waihi Beach", region: "Coromandel", lat: -37.405, lon: 175.940, offshore: 240, swell: 60, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.0, ms: "index" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/waihi-beach", smName: "Waihi Beach" },
+    { id: "whangamata", name: "Whangamata", region: "Coromandel", lat: -37.220, lon: 175.880, offshore: 225, swell: 45, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 1.5, ms: "index" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/whangamata", smName: "Whangamata" },
     { id: "opoutere", name: "Opoutere", region: "Coromandel", lat: -37.110, lon: 175.890, offshore: 260, swell: 70, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.7, ms: "index" },
-    { id: "tairua", name: "Tairua", region: "Coromandel", lat: -37.000, lon: 175.860, offshore: 225, swell: 45, width: 45, lo: 0.7, hi: 2.2, tide: "mid", rising: true, drive: 2.0, ms: "whitianga" },
-    { id: "manu", name: "Manu Bay", region: "Raglan", lat: -37.820, lon: 174.810, offshore: 135, swell: 235, width: 40, lo: 1.0, hi: 3.5, tide: "low", rising: false, drive: 2.5, ms: "index", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/manu-bay" },
+    { id: "tairua", name: "Tairua", region: "Coromandel", lat: -37.000, lon: 175.860, offshore: 225, swell: 45, width: 45, lo: 0.7, hi: 2.2, tide: "mid", rising: true, drive: 2.0, ms: "whitianga" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/tairua-beach", smName: "Tairua Beach" },
+    { id: "manu", name: "Manu Bay", region: "Raglan", lat: -37.820, lon: 174.810, offshore: 135, swell: 235, width: 40, lo: 1.0, hi: 3.5, tide: "low", rising: false, drive: 2.5, ms: "index" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/manu-bay", smName: "Manu Bay" },
     { id: "ngarunui", name: "Ngarunui (main beach)", region: "Raglan", lat: -37.805, lon: 174.825, offshore: 112, swell: 247, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 2.5, ms: "index" },
-    { id: "midway", name: "Midway (main beach)", region: "Gisborne", lat: -38.683, lon: 178.000, offshore: 0, swell: 200, width: 45, lo: 0.7, hi: 2.4, tide: "any", rising: false, drive: 4.3, ms: "index" },
-    { id: "wainui", name: "Wainui", region: "Gisborne", lat: -38.690, lon: 178.070, offshore: 300, swell: 75, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 4.4, ms: "index" },
+    { id: "midway", name: "Midway (main beach)", region: "Gisborne", lat: -38.683, lon: 178.000, offshore: 0, swell: 200, width: 45, lo: 0.7, hi: 2.4, tide: "any", rising: false, drive: 4.3, ms: "index" , sm: "https://www.swellmap.com/surfing/new-zealand/waikanae-beach", smName: "Waikanae Beach" },
+    { id: "wainui", name: "Wainui", region: "Gisborne", lat: -38.690, lon: 178.070, offshore: 300, swell: 75, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 4.4, ms: "index" , sm: "https://www.swellmap.com/surfing/new-zealand/wainui-beach", smName: "Wainui Beach" },
     { id: "makorori", name: "Makorori", region: "Gisborne", lat: -38.650, lon: 178.130, offshore: 337, swell: 67, width: 60, lo: 0.8, hi: 2.8, tide: "high", rising: true, drive: 4.5, ms: "index" },
-    { id: "kaiaua", name: "Kaiaua Bay", region: "East Cape", lat: -38.310, lon: 178.330, offshore: 315, swell: 170, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 5.0, ms: "index" },
-    { id: "mahanga", name: "Mahanga", region: "Mahia", lat: -39.030, lon: 177.970, offshore: 270, swell: 90, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 5.6, ms: "index" },
+    { id: "kaiaua", name: "Kaiaua Bay", region: "East Cape", lat: -38.310, lon: 178.330, offshore: 315, swell: 170, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 5.0, ms: "index" , sm: "https://www.swellmap.com/surfing/new-zealand/kaiaua", smName: "Kaiaua" },
+    { id: "mahanga", name: "Mahanga", region: "Mahia", lat: -39.030, lon: 177.970, offshore: 270, swell: 90, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 5.6, ms: "index" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/mahanga-beach", smName: "Mahanga Beach" },
     { id: "opoutama", name: "Opoutama", region: "Mahia", lat: -39.070, lon: 177.860, offshore: 45, swell: 180, width: 45, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 5.5, ms: "index" },
-    { id: "blacks", name: "Blacks Reef", region: "Mahia", lat: -39.070, lon: 177.800, offshore: 22, swell: 157, width: 40, lo: 1.0, hi: 3.0, tide: "mid", rising: true, drive: 5.5, ms: "index" }
+    { id: "blacks", name: "Blacks Reef", region: "Mahia", lat: -39.070, lon: 177.800, offshore: 22, swell: 157, width: 40, lo: 1.0, hi: 3.0, tide: "mid", rising: true, drive: 5.5, ms: "index" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/blacks", smName: "Blacks" }
   ];
 
   var COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
@@ -676,7 +677,7 @@ footer a { color: var(--accent); }
     var windyUrl = "https://www.windy.com/?waves," + s.lat + "," + s.lon + ",11";
     var ms = MS[s.ms] || MS.index;
     document.getElementById("links").innerHTML =
-      '<a href="' + esc(smUrl) + '" target="_blank" rel="noopener">Swellmap ↗</a>' +
+      '<a class="primary" href="' + esc(smUrl) + '" target="_blank" rel="noopener">' + (s.smName ? "Swellmap · " + esc(s.smName) : "Swellmap map near " + esc(s.name)) + ' ↗</a>' +
       '<a href="' + esc(windyUrl) + '" target="_blank" rel="noopener">Windy ↗</a>' +
       '<a href="' + esc(ms.url) + '" target="_blank" rel="noopener">' + esc(ms.label) + " ↗</a>";
   }
