@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><clipPath id="r"><rect width="512" height="512" rx="112"/></clipPath></defs>
-  <g clip-path="url(#r)">
+  <defs><clipPath id="ra"><rect width="512" height="512" rx="112"/></clipPath><clipPath id="card"><rect x="92" y="128" width="328" height="292" rx="44"/></clipPath></defs>
+  <g clip-path="url(#ra)">
     <rect width="512" height="512" fill="#0b6b63"/>
-    <circle cx="368" cy="150" r="58" fill="#f2b93b"/>
-    <path d="M0 360 C70 360 110 214 236 196 C330 183 404 240 414 318 C380 280 320 276 290 312 C266 342 282 382 324 386 L512 386 L512 512 L0 512 Z" fill="#f8faf8"/>
-    <path d="M120 300 C160 250 210 232 262 236" fill="none" stroke="#bfe3dc" stroke-width="14" stroke-linecap="round"/>
-    <rect x="0" y="416" width="512" height="96" fill="#08504a"/>
-    <g fill="#f8faf8"><rect x="40" y="456" width="56" height="14" rx="7"/><rect x="152" y="456" width="56" height="14" rx="7"/><rect x="264" y="456" width="56" height="14" rx="7"/><rect x="376" y="456" width="56" height="14" rx="7"/></g>
+    <rect x="92" y="128" width="328" height="292" rx="44" fill="#f8faf8"/>
+    <g clip-path="url(#card)">
+      <rect x="92" y="128" width="328" height="78" fill="#f2b93b"/>
+      <path d="M92 352 C150 352 176 262 252 250 C318 240 368 280 376 334 C352 310 316 310 302 334 C290 356 306 380 334 380 L420 380 L420 420 L92 420 Z" fill="#0b6b63"/>
+      <path d="M150 320 C178 286 210 272 246 272" fill="none" stroke="#7fc9bd" stroke-width="12" stroke-linecap="round"/>
+    </g>
+    <rect x="166" y="96" width="30" height="66" rx="15" fill="#08504a"/>
+    <rect x="316" y="96" width="30" height="66" rx="15" fill="#08504a"/>
   </g>
 </svg>

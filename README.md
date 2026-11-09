@@ -1,4 +1,4 @@
-# Surf Trip Planner
+# Days Offshore
 
 Pick your days off and see which region (Mount Maunganui, Ohope, Coromandel, Raglan, Taranaki, Gisborne, East Cape, Mahia) has the best surf and weather for a van trip from Mount Maunganui.
 
