@@ -1,9 +1,22 @@
 {
-  "minSwell": 0.5,
-  "minHours": 4,
-  "countLightWind": true,
-  "minDays": 2,
-  "startHour": 5,
-  "endHour": 20,
-  "regions": ["Mount Maunganui", "Ohope", "Coromandel", "Raglan", "Taranaki", "Gisborne", "East Cape", "Mahia"]
+  "trips": {
+    "enabled": true,
+    "minDays": 2,
+    "minSwell": 0.5,
+    "minHours": 4,
+    "countLightWind": true,
+    "startHour": 5,
+    "endHour": 20,
+    "regions": ["Mount Maunganui", "Ohope", "Coromandel", "Raglan", "Taranaki", "Gisborne", "East Cape", "Mahia"]
+  },
+  "home": {
+    "enabled": true,
+    "spot": "taystreet",
+    "daysAhead": 3,
+    "minSwell": 0.5,
+    "minHours": 3,
+    "countLightWind": true,
+    "startHour": 5,
+    "endHour": 20
+  }
 }
