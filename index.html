@@ -78,7 +78,11 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .rank-item { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; }
 .rank-item[aria-pressed="true"] { border-color: var(--fg); }
 .rank-item .nm { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
-.rank-item .sc { font-family: var(--font-data); font-size: 20px; font-weight: 500; color: var(--accent); text-align: right; }
+.scores { display: flex; gap: 12px; align-items: baseline; justify-content: flex-end; }
+.pill { display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-data); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.pill b { font-size: 20px; font-weight: 500; color: var(--accent); letter-spacing: 0; }
+.pill.wx b { color: var(--rain); }
+.best .pill b { font-size: 26px; }
 .rank-item .meta { font-family: var(--font-data); font-size: 11px; color: var(--muted); grid-column: 1 / -1; }
 .bar { grid-column: 1 / -1; height: 5px; background: var(--poor-soft); border-radius: 3px; overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--accent); }
@@ -133,7 +137,7 @@ footer a { color: var(--accent); }
     <h2 id="trip-h">Best trip for these days</h2>
     <div id="best"><div class="loading">Fetching swell and weather for 14 spots…</div></div>
     <div class="rank" id="rank"></div>
-    <p class="hint">Trip score is 65% surf at the best spot each day and 35% weather. Drive time is shown but doesn't change the score. Tap a region to see its spots.</p>
+    <p class="hint">Regions are ranked on waves: the average of the best session score each day at that region's best spot. The weather score is shown separately and doesn't change the ranking. Tap a region to see its spots.</p>
   </section>
 
   <section class="stack" aria-labelledby="spot-h" id="spot-section">
@@ -463,16 +467,17 @@ footer a { color: var(--accent); }
     var trip = null, surf = null;
     if (withSurf.length) {
       surf = Math.round(withSurf.reduce(function (a, x) { return a + x.pick.slot.score; }, 0) / withSurf.length);
-      var tot = withSurf.reduce(function (a, x) { return a + 0.65 * x.pick.slot.score + 0.35 * (x.wx === null ? 60 : x.wx); }, 0) / withSurf.length;
-      trip = { score: Math.max(0, Math.round(tot)) };
+      trip = { score: surf };
     }
+    var wxDays = daily.filter(function (x) { return x.wx !== null; });
+    var wxScore = wxDays.length ? Math.round(wxDays.reduce(function (a, x) { return a + x.wx; }, 0) / wxDays.length) : null;
     var rain = 0;
     days.forEach(function (d) { var r = model.spots[list[0].id][d].wx.rain; if (r) rain += r; });
     var spotAvg = list.map(function (s) {
       var sc = days.map(function (d) { var b = bestSlot(s.id, d); return b ? b.score : null; }).filter(function (x) { return x !== null; });
       return { s: s, v: sc.length ? sc.reduce(function (a, b) { return a + b; }, 0) / sc.length : -1 };
     }).sort(function (a, b) { return b.v - a.v; });
-    return { name: name, drive: drive, daily: daily, trip: trip, surf: surf, rain: Math.round(rain), missing: len - withSurf.length, bestSpot: spotAvg[0].s };
+    return { name: name, drive: drive, daily: daily, trip: trip, surf: surf, wx: wxScore, rain: Math.round(rain), missing: len - withSurf.length, bestSpot: spotAvg[0].s };
   }
 
   /* ---------- Rendering ---------- */
@@ -497,23 +502,30 @@ footer a { color: var(--accent); }
     if (!top.trip) {
       html = '<div class="note">There is no swell data yet for these days. The wave model usually covers about the next 7 to 10 days, so try an earlier range.</div>';
     } else {
-      html = '<div class="best"><div class="head"><div><div class="label">Best region</div><h2>' + esc(top.name) + '</h2></div><span class="big">' + top.trip.score + '</span></div>' +
+      html = '<div class="best"><div class="head"><div><div class="label">Best region</div><h2>' + esc(top.name) + '</h2></div>' + scorePills(top) + '</div>' +
         '<div class="row"><span>Drive from Mount</span><span>from ' + top.drive + ' h each way</span></div>' +
-        '<div class="row"><span>Average surf score</span><span>' + top.surf + '</span></div>' +
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
-        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ")" : "no swell data yet") + "</span></li>";
+        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ")" + dayWx(x) : "no swell data yet") + "</span></li>";
       });
       html += "</ul></div>";
     }
     document.getElementById("best").innerHTML = html;
     document.getElementById("rank").innerHTML = trips.map(function (x) {
-      var sc = x.trip ? x.trip.score : "–";
-      return '<button type="button" class="rank-item" data-region="' + esc(x.name) + '" aria-pressed="' + (state.region === x.name) + '"><span class="nm">' + esc(x.name) + '</span><span class="sc">' + sc + '</span>' +
-        '<span class="meta">surf ' + (x.surf === null ? "–" : x.surf) + " · rain " + x.rain + " mm · drive " + x.drive + " h" + (x.missing ? " · " + x.missing + " day" + (x.missing > 1 ? "s" : "") + " without swell data" : "") + '</span>' +
+      return '<button type="button" class="rank-item" data-region="' + esc(x.name) + '" aria-pressed="' + (state.region === x.name) + '"><span class="nm">' + esc(x.name) + '</span>' + scorePills(x) +
+        '<span class="meta">rain ' + x.rain + " mm · drive " + x.drive + " h" + (x.missing ? " · " + x.missing + " day" + (x.missing > 1 ? "s" : "") + " without swell data" : "") + '</span>' +
         '<span class="bar"><i style="width:' + (x.trip ? x.trip.score : 0) + '%"></i></span></button>';
     }).join("");
+  }
+
+  function scorePills(x) {
+    return '<span class="scores"><span class="pill"><b>' + (x.trip ? x.trip.score : "–") + '</b>waves</span><span class="pill wx"><b>' + (x.wx === null ? "–" : x.wx) + "</b>weather</span></span>";
+  }
+  function dayWx(x) {
+    var wx = model.spots[x.pick.spot.id][x.day].wx;
+    if (!wx || wx.tmax === null) return "";
+    return " · " + SKY_WORD[sky(wx.code)].toLowerCase() + " " + Math.round(wx.tmax) + "°";
   }
 
   function renderTabs() {
