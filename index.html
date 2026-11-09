@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Days Offshore">
-<meta name="theme-color" content="#3f8a82">
+<meta name="theme-color" content="#142221">
 <title>Days Offshore</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -14,28 +14,17 @@
 <style>
 /* Layout: date range strip first, then the best trip and ranked regions, then one spot's swell, wind, tide and weather chart. */
 :root {
-  /* Soft sea-glass palette: misty green-grey ground, slate text, muted teal accent, sand yellow from the logo */
-  --bg: #f1f4f2; --surface: #ffffff; --fg: #23383a; --muted: #6c7f7f; --line: #dbe4e1;
-  --accent: #3f8a82; --accent-soft: #e2efec; --fair: #c08a4a; --fair-soft: #f6eadb;
-  --poor: #8a9896; --poor-soft: #e8edeb; --note: #f8eee2; --note-fg: #82562c;
-  --sun: #e5b85a; --sun-soft: #f7ebcd; --cloud: #ccd5d2; --cloud-dark: #98a6a3; --rain: #6197c4; --tide: #6197c4;
-  --wind-off: #4f9a6c; --wind-on: #cd6c5f; --wind-other: #d6a64a;
-  --score-good: #4f9a6c; --score-ok: #d38f4c; --score-bad: #cd6c5f;
+  /* Soft sea-glass palette, dark: deep sea-green ground, misty text, muted teal accent, sand yellow from the logo. One look for every phone. */
+  --bg: #142221; --surface: #1b2c2b; --fg: #e3ece9; --muted: #9db1ad; --line: #2b403d;
+  --accent: #80c2b7; --accent-soft: #223d3a; --fair: #e2b37c; --fair-soft: #3a3020;
+  --poor: #94a5a1; --poor-soft: #22322f; --note: #3a2c1e; --note-fg: #ecd0ae;
+  --sun: #e8c272; --sun-soft: #3b3322; --cloud: #73837f; --cloud-dark: #56645f; --rain: #8fb9de; --tide: #8fb9de;
+  --wind-off: #86c99e; --wind-on: #e99487; --wind-other: #e8c27a;
+  --score-good: #86c99e; --score-ok: #e9b07c; --score-bad: #e99487;
   --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #142221; --surface: #1b2c2b; --fg: #e3ece9; --muted: #9db1ad; --line: #2b403d;
-    --accent: #80c2b7; --accent-soft: #223d3a; --fair: #e2b37c; --fair-soft: #3a3020;
-    --poor: #94a5a1; --poor-soft: #22322f; --note: #3a2c1e; --note-fg: #ecd0ae;
-    --sun: #e8c272; --sun-soft: #3b3322; --cloud: #73837f; --cloud-dark: #56645f; --rain: #8fb9de; --tide: #8fb9de;
-    --wind-off: #86c99e; --wind-on: #e99487; --wind-other: #e8c27a;
-    --score-good: #86c99e; --score-ok: #e9b07c; --score-bad: #e99487;
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -201,14 +190,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 16 · softer colours</span>
+    <span>App version 17 · dark sea-glass theme</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 16;
+  var APP_VERSION = 17;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
