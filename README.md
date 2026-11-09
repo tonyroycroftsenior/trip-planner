@@ -1,6 +1,6 @@
 # Surf Trip Planner
 
-Pick your days off and see which region (Bay of Plenty, Coromandel, Raglan, Gisborne, East Cape, Mahia) has the best surf and weather for a van trip from Mount Maunganui.
+Pick your days off and see which region (Mount Maunganui, Ohope, Coromandel, Raglan, Taranaki, Gisborne, East Cape, Mahia) has the best surf and weather for a van trip from Mount Maunganui.
 
 - Live swell, wind, tide and weather from [Open-Meteo](https://open-meteo.com/)
 - Swell chart per spot with weather icons and tide curve
