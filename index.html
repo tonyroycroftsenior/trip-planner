@@ -180,14 +180,14 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 12 · scores coloured green, orange and red</span>
+    <span>App version 13 · weather score counts showers, thunder and rain chance</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 12;
+  var APP_VERSION = 13;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -465,12 +465,16 @@ footer a { color: var(--accent); }
     return best;
   }
 
+  /* Weather score: rain amount, chance of rain, temperature, and the kind of weather (showers and thunder count against it even when little rain is forecast) */
+  var SKY_FACTOR = { fine: 1, partly: 1, cloudy: 0.85, fog: 0.7, showers: 0.6, rain: 0.45, thunder: 0.3 };
   function weatherScore(wx) {
     if (!wx || wx.tmax === null) return null;
-    var r = wx.rain || 0, t = wx.tmax;
+    var r = wx.rain || 0, t = wx.tmax, pop = wx.pop === null || wx.pop === undefined ? 30 : wx.pop;
     var rainF = r <= 1 ? 1 : (r <= 5 ? 0.7 : (r <= 15 ? 0.35 : 0.1));
+    var popF = 1 - pop / 100 * 0.6;
     var tempF = t >= 18 && t <= 26 ? 1 : (t < 18 ? clamp(0.4 + (t - 12) / 10, 0.2, 1) : 0.8);
-    return Math.round(100 * (0.65 * rainF + 0.35 * tempF));
+    var skyF = SKY_FACTOR[sky(wx.code)];
+    return Math.round(100 * (0.5 * rainF + 0.2 * popF + 0.3 * tempF) * (0.5 + 0.5 * skyF));
   }
 
   /* WMO weather codes to icons */
