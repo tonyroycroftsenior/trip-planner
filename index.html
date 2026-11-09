@@ -17,6 +17,7 @@
   --accent: #0b6b63; --accent-soft: #d3e8e3; --fair: #a8741a; --fair-soft: #f1e4c4;
   --poor: #7b8884; --poor-soft: #e1e6e3; --note: #f3e2d3; --note-fg: #6a3a14;
   --sun: #e8a317; --cloud: #c3ccc9; --cloud-dark: #8e9a97; --rain: #2f7fc1; --tide: #2f7fc1;
+  --wind-off: #23964a; --wind-on: #d33a2c; --wind-other: #d9a400;
   --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -28,6 +29,7 @@
     --accent: #52c4b0; --accent-soft: #15403a; --fair: #e0b04f; --fair-soft: #3a3014;
     --poor: #8fa09b; --poor-soft: #1d2f2b; --note: #3a2616; --note-fg: #f0cba8;
     --sun: #f2b93b; --cloud: #6f7f7b; --cloud-dark: #4f5d5a; --rain: #6db3ec; --tide: #6db3ec;
+    --wind-off: #4fd07a; --wind-on: #f2675a; --wind-other: #f2c94c;
     color-scheme: dark;
   }
 }
@@ -150,7 +152,7 @@ footer a { color: var(--accent); }
         <span><i style="background:var(--accent)"></i>Good 70+</span>
         <span><i style="background:var(--fair)"></i>Fair 45 to 69</span>
         <span><i style="background:var(--poor)"></i>Poor under 45</span>
-        <span>Wind arrows: teal offshore or light, amber cross-shore, grey onshore</span>
+        <span><i style="background:var(--wind-off)"></i>Offshore wind</span><span><i style="background:var(--wind-on)"></i>Onshore wind</span><span><i style="background:var(--wind-other)"></i>Cross-shore or light wind</span>
         <span>Board: LB longboard (swell 1.0 m or less), SB shortboard (over 1.0 m)</span>
       </div>
     </div>
@@ -166,7 +168,7 @@ footer a { color: var(--accent); }
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 4 · longboard and shortboard labels</span>
+    <span>App version 5 · green, yellow and red wind arrows</span>
   </footer>
 </div>
 
@@ -654,7 +656,7 @@ footer a { color: var(--accent); }
           g += txt(scx, yOf(0) - 6, "–", { size: 10 });
         }
         if (x.c.ws !== null && x.c.wdir !== null) {
-          var wfill = x.kind === "offshore" || x.kind === "light" ? "var(--accent)" : (x.kind === "cross" ? "var(--fair)" : "var(--poor)");
+          var wfill = x.kind === "offshore" ? "var(--wind-off)" : (x.kind === "onshore" ? "var(--wind-on)" : "var(--wind-other)");
           g += arrow(scx, Y.wind, x.c.wdir, wfill, 0.85);
           g += txt(scx, Y.ws, Math.round(x.c.ws) + "", { size: 9, fill: "var(--fg)" });
         }
