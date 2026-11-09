@@ -8,7 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Surf Trips">
 <meta name="theme-color" content="#0b6b63">
 <title>Surf Trip Planner</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6b63'/%3E%3Cpath d='M8 40c8-14 20-18 30-12-6 0-10 4-10 10 0 4 3 7 8 7 8 0 14-8 20-14v21H8z' fill='%23f8faf8'/%3E%3C/svg%3E">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: date range strip first, then the best trip and ranked regions, then one spot's swell, wind, tide and weather chart. */
@@ -53,6 +54,11 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .sub { color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 .label { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.brand { display: flex; gap: 14px; align-items: center; }
+.brand .logo { width: 52px; height: 52px; flex: none; border-radius: 12px; }
+.origin { display: flex; flex-direction: column; gap: 6px; }
+.origin-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.origin select { font: inherit; font-size: 15px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; flex: 1 1 180px; min-width: 0; }
 .status { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .btn { font: inherit; font-size: 13px; cursor: pointer; color: var(--accent); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
 .btn:hover { border-color: var(--accent); }
@@ -128,8 +134,7 @@ footer a { color: var(--accent); }
 <body>
 <div class="wrap">
   <header>
-    <div class="label">Van trip planner · from Mount Maunganui</div>
-    <h1>Surf Trip Planner</h1>
+    <div class="brand"><img class="logo" src="logo.svg" alt="" width="52" height="52"><div><div class="label" id="from-label">Van trip planner</div><h1>Surf Trip Planner</h1></div></div>
     <p class="sub">Pick your days off. See which region has the best surf and weather, then check the swell, wind and tide chart for each spot.</p>
   </header>
 
@@ -138,6 +143,12 @@ footer a { color: var(--accent); }
     <button class="btn" id="refresh" type="button">Refresh forecast</button>
   </div>
   <div class="note" id="error" hidden></div>
+
+  <section class="origin" aria-label="Starting point">
+    <label class="label" for="origin">Starting from</label>
+    <div class="origin-row"><select id="origin"></select><button class="btn" type="button" id="use-loc">Use my location</button></div>
+    <span class="hint" id="origin-note"></span>
+  </section>
 
   <section class="stack" aria-labelledby="off-h">
     <h2 id="off-h">Your days off</h2>
@@ -179,15 +190,15 @@ footer a { color: var(--accent); }
 
   <footer>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
-    <span>Spot settings and drive times are starting estimates from surf guides. Adjust them under each spot.</span>
-    <span>App version 13 · weather score counts showers, thunder and rain chance</span>
+    <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
+    <span>App version 14 · choose your starting point, new logo</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 13;
+  var APP_VERSION = 14;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -244,6 +255,36 @@ footer a { color: var(--accent); }
     { id: "opoutama", name: "Opoutama", region: "Mahia", lat: -39.070, lon: 177.860, offshore: 45, swell: 180, width: 45, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 5.5, ms: "wairoa" },
     { id: "blacks", name: "Blacks Reef", region: "Mahia", lat: -39.070, lon: 177.800, offshore: 22, swell: 157, width: 40, lo: 1.0, hi: 3.0, tide: "mid", rising: true, drive: 5.5, ms: "wairoa" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/blacks", smName: "Blacks" }
   ];
+
+  /* Starting points. Drive times from Mount Maunganui use the hand-set value for each spot; from anywhere else they are estimated from distance. */
+  var ORIGINS = [
+    { name: "Mount Maunganui", lat: -37.632, lon: 176.180 },
+    { name: "Tauranga", lat: -37.687, lon: 176.165 },
+    { name: "Whakatāne", lat: -37.953, lon: 176.990 },
+    { name: "Rotorua", lat: -38.137, lon: 176.250 },
+    { name: "Taupō", lat: -38.686, lon: 176.070 },
+    { name: "Hamilton", lat: -37.787, lon: 175.279 },
+    { name: "Auckland", lat: -36.848, lon: 174.763 },
+    { name: "Whangārei", lat: -35.725, lon: 174.323 },
+    { name: "Gisborne", lat: -38.662, lon: 178.018 },
+    { name: "Napier", lat: -39.490, lon: 176.912 },
+    { name: "New Plymouth", lat: -39.057, lon: 174.075 },
+    { name: "Palmerston North", lat: -40.352, lon: 175.608 },
+    { name: "Wellington", lat: -41.286, lon: 174.776 }
+  ];
+  var ORIGIN_KEY = "surf-trip-origin-v1";
+  var origin = load(ORIGIN_KEY) || ORIGINS[0];
+  function km(a, b) {
+    var R = 6371, toR = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * toR, dLon = (b.lon - a.lon) * toR;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function driveHours(s) {
+    if (origin.name === "Mount Maunganui") return s.drive;
+    var hrs = km(origin, s) * 1.45 / 68 + 0.1;
+    return Math.round(hrs * 2) / 2;
+  }
 
   var COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   function compass(deg) { return COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]; }
@@ -500,7 +541,7 @@ footer a { color: var(--accent); }
   function regionTrip(name) {
     var days = rangeDays(), len = days.length;
     var list = allSpots().filter(function (s) { return s.region === name; });
-    var drive = Math.min.apply(null, list.map(function (s) { return s.drive; }));
+    var drive = Math.min.apply(null, list.map(function (s) { return driveHours(s); }));
     var daily = days.map(function (d) {
       var pick = null;
       list.forEach(function (s) { var b = bestSlot(s.id, d); if (b && (!pick || b.score > pick.slot.score)) pick = { spot: s, slot: b }; });
@@ -548,7 +589,7 @@ footer a { color: var(--accent); }
       html = '<div class="note">There is no swell data yet for these days. The wave model usually covers about the next 7 to 10 days, so try an earlier range.</div>';
     } else {
       html = '<div class="best"><div class="head"><div><div class="label">Best region</div><h2>' + esc(top.name) + '</h2></div>' + scorePills(top) + '</div>' +
-        '<div class="row"><span>Drive from Mount</span><span>from ' + top.drive + ' h each way</span></div>' +
+        '<div class="row"><span>Drive from ' + esc(origin.name) + '</span><span>' + (origin.name === "Mount Maunganui" ? "from " : "about ") + top.drive + ' h each way</span></div>' +
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
@@ -896,6 +937,37 @@ footer a { color: var(--accent); }
     document.getElementById("saved").textContent = "Saved";
   });
 
+  function renderOrigin() {
+    var sel = document.getElementById("origin");
+    var opts = ORIGINS.map(function (o, i) { return '<option value="' + i + '"' + (o.name === origin.name ? " selected" : "") + ">" + esc(o.name) + "</option>"; });
+    if (origin.custom) opts.unshift('<option value="custom" selected>' + esc(origin.name) + "</option>");
+    sel.innerHTML = opts.join("");
+    document.getElementById("from-label").textContent = "Van trip planner · from " + origin.name;
+  }
+  function setOrigin(o) {
+    origin = o; store(ORIGIN_KEY, o); renderOrigin();
+    if (model) { renderTrips(); renderSpot(); }
+  }
+  document.getElementById("origin").addEventListener("change", function (e) {
+    if (e.target.value === "custom") return;
+    setOrigin(ORIGINS[+e.target.value]);
+    document.getElementById("origin-note").textContent = "";
+  });
+  document.getElementById("use-loc").addEventListener("click", function () {
+    var note = document.getElementById("origin-note");
+    if (!navigator.geolocation) { note.textContent = "This browser can't share your location. Pick the nearest town instead."; return; }
+    note.textContent = "Finding your location…";
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var here = { name: "Your location", lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3), custom: true };
+      var near = ORIGINS.slice().sort(function (a, b) { return km(here, a) - km(here, b); })[0];
+      setOrigin(here);
+      note.textContent = "Using your current location (nearest listed town: " + near.name + ").";
+    }, function () {
+      note.textContent = "Couldn't get your location. Check location access for your browser, or pick the nearest town.";
+    }, { timeout: 10000, maximumAge: 600000 });
+  });
+
+  renderOrigin();
   loadForecast(false);
 })();
 </script>
