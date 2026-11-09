@@ -78,14 +78,21 @@ console.log(`Found ${runs.length} good run(s).`);
 const repo = process.env.GITHUB_REPOSITORY, token = process.env.GITHUB_TOKEN, owner = process.env.GITHUB_REPOSITORY_OWNER;
 const gh = (path, opts = {}) => fetch("https://api.github.com/repos/" + repo + path, { ...opts, headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json", "Content-Type": "application/json" } });
 const existing = await (await gh("/issues?state=all&per_page=100")).json();
-const titles = new Set((Array.isArray(existing) ? existing : []).map(i => i.title));
+const seen = (Array.isArray(existing) ? existing : []).map(i => i.title + "\n" + (i.body || "")).join("\n");
 
-for (const r of runs) {
-  const title = `Good run: ${r.region}, ${fmtDay(r.days[0].date)} – ${fmtDay(r.days.at(-1).date)}`;
-  const key = `Good run: ${r.region}, ${fmtDay(r.days[0].date)} –`;
-  if ([...titles].some(t => t.startsWith(key))) { console.log("Already sent a run starting that day:", title); continue; }
+// One notification per morning, listing only runs that haven't been sent before (keyed by region + first day)
+const fresh = runs.filter(r => {
+  const key = `run:${r.region}|${r.days[0].date}`;
+  const oldTitle = `Good run: ${r.region}, ${fmtDay(r.days[0].date)} –`;
+  return !seen.includes(key) && !seen.includes(oldTitle);
+});
+if (!fresh.length) { console.log("No new runs to send."); process.exit(0); }
+
+const sections = fresh.map(r => {
   const lines = r.days.map(d => `- **${fmtDay(d.date)}**: ${d.s.name}, offshore ${clock(d.w.start)}–${clock(d.w.end + 1)}, swell up to ${d.w.swell.toFixed(1)} m, wind about ${d.w.wind} kts`);
-  const body = `@${owner} ${r.days.length} good days in a row at ${r.region}.\n\n${lines.join("\n")}\n\n[Open Days Offshore](${APP_URL})\n\n_Good day: swell 0.5 m or more and at least 4 hours of offshore or light wind between 5am and 8pm. Forecast from Open-Meteo._`;
-  const res = await gh("/issues", { method: "POST", body: JSON.stringify({ title, body }) });
-  console.log(res.ok ? "Sent: " + title : "Failed: " + title + " " + res.status + " " + (await res.text()).slice(0, 200));
-}
+  return `### ${r.region}: ${fmtDay(r.days[0].date)} – ${fmtDay(r.days.at(-1).date)} (${r.days.length} days)\n<!-- run:${r.region}|${r.days[0].date} -->\n${lines.join("\n")}`;
+});
+const title = `Good surf runs: ${fresh.map(r => r.region).filter((v, i, a) => a.indexOf(v) === i).join(", ")}`;
+const body = `@${owner} New runs of 2+ good days in a row:\n\n${sections.join("\n\n")}\n\n[Open Days Offshore](${APP_URL})\n\n_Good day: swell 0.5 m or more and at least 4 hours of offshore or light wind between 5am and 8pm. Forecast from Open-Meteo._`;
+const res = await gh("/issues", { method: "POST", body: JSON.stringify({ title, body }) });
+console.log(res.ok ? "Sent: " + title : "Failed: " + res.status + " " + (await res.text()).slice(0, 200));
