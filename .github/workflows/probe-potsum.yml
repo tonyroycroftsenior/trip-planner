@@ -1,9 +1,0 @@
-name: probe-potsum
-on: workflow_dispatch
-jobs:
-  p:
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          curl -sS -D - -o body.json -H "Origin: https://tonyroycroftsenior.github.io" "https://raw.githubusercontent.com/${{ github.repository }}/harbour-data/harbour.json?t=$(date +%s)" | grep -i 'HTTP/\|access-control\|cache-control\|content-type\|expires\|x-cache'
-          echo "BODY $(head -c 200 body.json)"
