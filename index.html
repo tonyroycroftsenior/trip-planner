@@ -182,6 +182,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .about p, .about ul { margin: 0; font-size: 15px; }
 .about ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .about a { color: var(--accent); }
+.tide-now { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.tide-now svg { color: var(--rain); flex: none; margin-top: 1px; }
+.tide-now .hint { font-size: 13px; }
 .now-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
 .now-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; font-family: var(--font-data); font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
 .now-top b { color: var(--fg); font-weight: 500; }
@@ -464,14 +467,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 64 · home spot drop-down restyled</span>
+    <span>App version 65 · tide now under home spot</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 64;
+  var APP_VERSION = 65;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1060,6 +1063,34 @@ footer a { color: var(--accent); }
     };
   }
   function hm12(hhmm) { var h = +hhmm.slice(0, 2), m = hhmm.slice(3, 5); return (h % 12 || 12) + ":" + m + (h < 12 ? "am" : "pm"); }
+  /* What the tide is doing right now at a spot: Low / Mid / High, rising or falling, and the next turn */
+  function tideNow(s) {
+    if (!model || !model.days[0] || model.days[0].dow !== "Today") return null;
+    var key = model.days[0].key, nowMin = minutesOf(key, new Date().toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }));
+    var ev = s.port && linz[s.port];
+    if (ev) {
+      var prev = null, next = [];
+      ev.forEach(function (e) { if (e.m <= nowMin) prev = e; else if (next.length < 2) next.push(e); });
+      var cur = linzHeight(s.port, nowMin);
+      if (prev && next.length && cur !== null) {
+        var n0 = next[0], lo = Math.min(prev.h, n0.h), hi = Math.max(prev.h, n0.h), f = hi > lo ? (cur - lo) / (hi - lo) : 0.5;
+        return { level: f < 0.33 ? "Low" : f > 0.67 ? "High" : "Mid", rising: n0.h > prev.h, h: cur,
+          next: next.map(function (e, i) { var hiE = i === 0 ? e.h > prev.h : e.h > next[0].h; return (hiE ? "high " : "low ") + (e.key !== key ? "tmrw " : "") + hm12(e.time); }) };
+      }
+    }
+    var dd = model.spots[s.id][0], hr = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
+    var vals = dd.tides.filter(function (v) { return v !== null; }), c = dd.tides[hr], c2 = dd.tides[Math.min(23, hr + 1)];
+    if (!vals.length || c === null || c2 === null) return null;
+    var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), f2 = mx > mn ? (c - mn) / (mx - mn) : 0.5;
+    var nx = [];
+    for (var h = hr + 1; h < 23 && nx.length < 2; h++) { var a = dd.tides[h - 1], b = dd.tides[h], d2 = dd.tides[h + 1]; if (a === null || b === null || d2 === null) continue; if (b >= a && b > d2) nx.push("high " + clock(h)); else if (b <= a && b < d2) nx.push("low " + clock(h)); }
+    return { level: f2 < 0.33 ? "Low" : f2 > 0.67 ? "High" : "Mid", rising: c2 > c, h: null, next: nx };
+  }
+  function tideNowHTML(s) {
+    var t = tideNow(s); if (!t) return "";
+    return '<div class="tide-now"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M2 14c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 19c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+      "<span><b>Tide now: " + t.level + " tide, " + (t.rising ? "rising ↑" : "falling ↓") + "</b>" + (t.next.length ? '<span class="hint"> · next ' + esc(t.next.join(", then ")) + "</span>" : "") + "</span></div>";
+  }
   function tideTimes(dd) {
     if (dd.tideEvents && dd.tideEvents.length) {
       return dd.tideEvents.map(function (e, i, arr) {
@@ -1482,7 +1513,7 @@ footer a { color: var(--accent); }
     for (var d = 0; d < Math.min(H.daysAhead, model.days.length); d++) { var w = goodWindow(s, d, H); if (w) days.push({ d: d, w: w }); }
     el.innerHTML = '<button type="button" class="run" data-home="' + s.id + '"><span class="run-head"><b>' + esc(s.name) + "</b><span" + (days.length ? "" : ' style="color:var(--muted)"') + ">" + (days.length ? days.length + " good " + (days.length === 1 ? "session" : "sessions") : "nothing good") + " in the next " + (H.daysAhead === 1 ? "day" : H.daysAhead + " days") + "</span></span>" +
       (days.length ? days.map(function (x) { var dy = model.days[x.d]; return '<span class="run-day">' + esc(dy.dow + ": offshore " + clock(x.w.start) + "–" + clock(x.w.end + 1) + " · " + x.w.swell.toFixed(1) + " m · " + x.w.wind + " kts") + "</span>"; }).join("")
-        : '<span class="run-day">Needs ' + H.minSwell + " m swell and " + H.minHours + "+ hours offshore between " + clock(H.startHour) + " and " + clock(H.endHour) + ".</span>") + "</button>";
+        : '<span class="run-day">Needs ' + H.minSwell + " m swell and " + H.minHours + "+ hours offshore between " + clock(H.startHour) + " and " + clock(H.endHour) + ".</span>") + "</button>" + tideNowHTML(s);
   }
 
   function renderRuns() {
