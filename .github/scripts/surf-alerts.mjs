@@ -56,7 +56,7 @@ function goodWindow(i, date, A = CFG) {
     const wi = w.time.indexOf(t), mi = mIdx.get(t);
     const sw = mi === undefined ? null : (m.swell_wave_height?.[mi] ?? m.wave_height?.[mi] ?? null);
     const ws = wi < 0 ? null : w.wind_speed_10m[wi], wd = wi < 0 ? null : w.wind_direction_10m[wi];
-    const ok = sw !== null && sw >= A.minSwell && ws !== null && wd !== null && ((A.countLightWind && ws <= 5) || angDiff(wd, s.offshore) <= 50);
+    const ok = sw !== null && sw >= A.minSwell && ws !== null && wd !== null && ((A.countLightWind && ws <= 5) || angDiff(wd, s.offshore) <= 30);
     if (ok) {
       if (!cur) cur = { start: h, end: h, sw: [], ws: [] };
       cur.end = h; cur.sw.push(sw); cur.ws.push(ws);
