@@ -144,6 +144,18 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .tab-count { font-family: var(--font-data); font-size: 11px; font-weight: 500; background: var(--score-good); color: var(--surface); border-radius: 999px; padding: 0 7px; line-height: 18px; }
 .tab-count:empty { display: none; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.hw-analysis { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.hw-analysis .verdict-line { font-family: var(--font-display); font-weight: 600; font-size: 18px; line-height: 1.3; text-wrap: balance; }
+.hw-analysis ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.hw-days { display: flex; flex-direction: column; gap: 8px; }
+.hw-day { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 52px 44px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+.hw-day.good { border-color: var(--score-good); }
+.hw-day .dname { font-family: var(--font-display); font-weight: 600; font-size: 15px; line-height: 1.1; }
+.hw-day .dname small { display: block; font-family: var(--font-data); font-size: 11px; font-weight: 400; color: var(--muted); }
+.hw-day .ft { font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+.hw-day .meta { font-size: 12px; color: var(--muted); grid-column: 3 / -1; }
+.hw-day .score-badge { font-family: var(--font-data); font-size: 14px; font-weight: 500; border-radius: 6px; padding: 2px 8px; color: var(--surface); }
+.hw-day .wxs { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-align: center; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -171,8 +183,9 @@ footer a { color: var(--accent); }
   </header>
   <svg class="wave-rule" viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 Q 12.5 0 25 5 T 50 5 T 75 5 T 100 5 T 125 5 T 150 5 T 175 5 T 200 5 T 225 5 T 250 5 T 275 5 T 300 5 T 325 5 T 350 5 T 375 5 T 400 5" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
   <nav class="tabs-nav" role="tablist" aria-label="Pages">
-    <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="true">Plan a trip</button>
-    <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Good runs <span class="tab-count" id="runs-count"></span></button>
+    <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="true">Plan</button>
+    <button type="button" role="tab" class="tab" data-tab="home" aria-selected="false">Home</button>
+    <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Runs <span class="tab-count" id="runs-count"></span></button>
     <button type="button" role="tab" class="tab" data-tab="settings" aria-selected="false">Settings</button>
   </nav>
 
@@ -198,6 +211,18 @@ footer a { color: var(--accent); }
   <section class="stack" aria-labelledby="home-h" id="home-sec" data-page="plan">
     <h2 id="home-h">Home spot</h2>
     <div class="runs" id="home-card"></div>
+  </section>
+
+  <section class="stack" aria-labelledby="hw-h" data-page="home" hidden>
+    <div><div class="label">Your home spot · next 7 days</div><h2 id="hw-h" style="font-size:24px">–</h2><p class="hint" id="hw-sub"></p></div>
+    <div class="hw-analysis" id="hw-analysis"></div>
+    <div class="hw-days" id="hw-days"></div>
+    <div class="cond" id="hw-cond"></div>
+    <div class="chart-card">
+      <div class="top"><div><div class="label">Hour by hour</div><h2>Swell, wind, tide and weather</h2></div><span class="label">scroll sideways · tap a time</span></div>
+      <div class="scroll" id="hw-chart"></div>
+    </div>
+    <div class="links" id="hw-links"></div>
   </section>
 
   <section class="stack" aria-labelledby="runs-h" data-page="runs" hidden>
@@ -254,14 +279,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 30 · Good runs and Settings on their own tabs</span>
+    <span>App version 31 · Home tab with week forecast and Surfline links</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 30;
+  var APP_VERSION = 31;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -296,22 +321,22 @@ footer a { color: var(--accent); }
   /* offshore = wind direction (from) that blows offshore; swell = best swell direction (from); width = how wide a swell window it takes;
      lo/hi = swell height range in metres it handles well; tide = any|low|mid|high; rising = prefers a rising tide; drive = hours from Mount */
   var SPOTS_DEFAULT = [
-    { id: "mount", name: "Mount Main Beach", region: "Mount Maunganui", lat: -37.632, lon: 176.180, offshore: 210, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9},
-    { id: "taystreet", name: "Tay Street", region: "Mount Maunganui", lat: -37.650, lon: 176.200, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9},
-    { id: "papamoa", name: "Papamoa", region: "Mount Maunganui", lat: -37.700, lon: 176.300, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.3, ms: "tauranga", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/papamoa-beach", smName: "Papamoa Beach", exp: 1.0},
+    { id: "mount", name: "Mount Main Beach", region: "Mount Maunganui", lat: -37.632, lon: 176.180, offshore: 210, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/mt-maunganui-main-beach/5842041f4e65fad6a7708d84", slName: "Mt Maunganui Main Beach" },
+    { id: "taystreet", name: "Tay Street", region: "Mount Maunganui", lat: -37.650, lon: 176.200, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/tay-street/584204204e65fad6a7709670", slName: "Tay Street" },
+    { id: "papamoa", name: "Papamoa", region: "Mount Maunganui", lat: -37.700, lon: 176.300, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.3, ms: "tauranga", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/papamoa-beach", smName: "Papamoa Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/papamoa/6168a7a5cb771a17201e2362", slName: "Papamoa" },
     { id: "ohope", name: "Ohope Beach", region: "Ohope", lat: -37.960, lon: 177.040, offshore: 202, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 1.3, ms: "ohope", sm: "https://www.swellmap.com/surfing/new-zealand/ohope-beach", smName: "Ohope Beach", exp: 0.9},
     { id: "waihi", name: "Waihi Beach", region: "Coromandel", lat: -37.405, lon: 175.940, offshore: 240, swell: 60, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.0, ms: "waihi" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/waihi-beach", smName: "Waihi Beach", exp: 1.0 },
     { id: "whangamata", name: "Whangamata", region: "Coromandel", lat: -37.220, lon: 175.880, offshore: 225, swell: 45, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 1.5, ms: "whangamata" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/whangamata", smName: "Whangamata", exp: 1.0 },
     { id: "opoutere", name: "Opoutere", region: "Coromandel", lat: -37.110, lon: 175.890, offshore: 260, swell: 70, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.7, ms: "whangamata", exp: 1.0 },
     { id: "tairua", name: "Tairua", region: "Coromandel", lat: -37.000, lon: 175.860, offshore: 225, swell: 45, width: 45, lo: 0.7, hi: 2.2, tide: "mid", rising: true, drive: 2.0, ms: "whitianga" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/tairua-beach", smName: "Tairua Beach", exp: 0.9 },
-    { id: "manu", name: "Manu Bay", region: "Raglan", lat: -37.820, lon: 174.810, offshore: 135, swell: 235, width: 40, lo: 1.0, hi: 3.5, tide: "low", rising: false, drive: 2.5, ms: "raglan" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/manu-bay", smName: "Manu Bay", exp: 0.85},
-    { id: "ngarunui", name: "Ngarunui (main beach)", region: "Raglan", lat: -37.805, lon: 174.825, offshore: 112, swell: 247, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 2.5, ms: "raglan", exp: 1.0},
+    { id: "manu", name: "Manu Bay", region: "Raglan", lat: -37.820, lon: 174.810, offshore: 135, swell: 235, width: 40, lo: 1.0, hi: 3.5, tide: "low", rising: false, drive: 2.5, ms: "raglan" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/manu-bay", smName: "Manu Bay", exp: 0.85, sl: "https://www.surfline.com/surf-report/raglan-manu-bay/616899fddc9629291807fafc", slName: "Raglan Manu Bay" },
+    { id: "ngarunui", name: "Ngarunui (main beach)", region: "Raglan", lat: -37.805, lon: 174.825, offshore: 112, swell: 247, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 2.5, ms: "raglan", exp: 1.0, sl: "https://www.surfline.com/surf-report/raglan/5842041f4e65fad6a7708d7e", slName: "Raglan" },
     { id: "fitzroy", name: "Fitzroy", region: "Taranaki", lat: -39.050, lon: 174.100, offshore: 135, swell: 270, width: 50, lo: 0.8, hi: 2.5, tide: "high", rising: true, drive: 4.6, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/fitzroy-beach", smName: "Fitzroy Beach", exp: 1.0},
     { id: "kumera", name: "Kumera Patch", region: "Taranaki", lat: -39.150, lon: 173.850, offshore: 157, swell: 225, width: 45, lo: 1.0, hi: 3.0, tide: "any", rising: false, drive: 4.9, ms: "newplymouth", exp: 0.9},
-    { id: "stent", name: "Stent Road", region: "Taranaki", lat: -39.220, lon: 173.780, offshore: 90, swell: 245, width: 50, lo: 1.0, hi: 3.5, tide: "any", rising: false, drive: 5.0, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/stent-road", smName: "Stent Road", exp: 1.0},
+    { id: "stent", name: "Stent Road", region: "Taranaki", lat: -39.220, lon: 173.780, offshore: 90, swell: 245, width: 50, lo: 1.0, hi: 3.5, tide: "any", rising: false, drive: 5.0, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/stent-road", smName: "Stent Road", exp: 1.0, sl: "https://www.surfline.com/surf-report/stent-road/5842041f4e65fad6a7708d8f", slName: "Stent Road" },
     { id: "opunake", name: "Opunake", region: "Taranaki", lat: -39.460, lon: 173.860, offshore: 22, swell: 225, width: 50, lo: 0.8, hi: 3.0, tide: "any", rising: false, drive: 5.3, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/opunake", smName: "Opunake", exp: 0.9},
     { id: "midway", name: "Midway (main beach)", region: "Gisborne", lat: -38.683, lon: 178.000, offshore: 0, swell: 200, width: 45, lo: 0.7, hi: 2.4, tide: "any", rising: false, drive: 4.3, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/waikanae-beach", smName: "Waikanae Beach", exp: 0.8},
-    { id: "wainui", name: "Wainui", region: "Gisborne", lat: -38.690, lon: 178.070, offshore: 300, swell: 75, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 4.4, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/wainui-beach", smName: "Wainui Beach", exp: 1.0},
+    { id: "wainui", name: "Wainui", region: "Gisborne", lat: -38.690, lon: 178.070, offshore: 300, swell: 75, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 4.4, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/wainui-beach", smName: "Wainui Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/wainui-beach/5842041f4e65fad6a7708d82", slName: "Wainui Beach" },
     { id: "makorori", name: "Makorori", region: "Gisborne", lat: -38.650, lon: 178.130, offshore: 337, swell: 67, width: 60, lo: 0.8, hi: 2.8, tide: "high", rising: true, drive: 4.5, ms: "gisborne", exp: 1.0},
     { id: "kaiaua", name: "Kaiaua Bay", region: "East Cape", lat: -38.310, lon: 178.330, offshore: 315, swell: 170, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 5.0, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/kaiaua", smName: "Kaiaua", exp: 0.9 },
     { id: "mahanga", name: "Mahanga", region: "Mahia", lat: -39.030, lon: 177.970, offshore: 270, swell: 90, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 5.6, ms: "wairoa" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/mahanga-beach", smName: "Mahanga Beach", exp: 1.0 },
@@ -349,6 +374,8 @@ footer a { color: var(--accent); }
     return Math.round(hrs * 2) / 2;
   }
 
+  var SURFLINE_REGION = {"Mount Maunganui": "https://www.surfline.com/surf-reports-forecasts-cams/new-zealand/north-island/bay-of-plenty/tauranga-city/mount-maunganui/2208041", "Ohope": "https://www.surfline.com/surf-reports-forecasts-cams/new-zealand/north-island/bay-of-plenty/2182560", "Taranaki": "https://www.surfline.com/surf-reports-forecasts-cams/new-zealand/taranaki/2181872", "Gisborne": "https://www.surfline.com/surf-reports-forecasts-cams/new-zealand/north-island/gisborne/gisborne-district/wainui/2180127", "Raglan": "https://www.surfline.com/surf-reports-forecasts-cams/new-zealand/waikato/2180293"};
+  var SURFLINE_NZ = "https://www.surfline.com/surf-reports-forecasts-cams/new-zealand/north-island/2185983";
   var COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   function compass(deg) { return COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]; }
   function angDiff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
@@ -733,6 +760,79 @@ footer a { color: var(--accent); }
       home: Object.assign({ enabled: !!c.home.enabled, spot: c.home.spot, daysAhead: +c.home.daysAhead }, win(c.home))
     };
   }
+  function tideTimes(dd) {
+    var out = [];
+    for (var h = 1; h < 23; h++) {
+      var a = dd.tides[h - 1], b = dd.tides[h], c = dd.tides[h + 1];
+      if (a === null || b === null || c === null) continue;
+      if (b >= a && b > c) out.push("high " + clock(h)); else if (b <= a && b < c) out.push("low " + clock(h));
+    }
+    return out;
+  }
+  function miniSky(kind) { return '<svg viewBox="0 0 60 48" width="44" height="35" aria-hidden="true">' + skyIcon(kind, 30, 20) + "</svg>"; }
+  var homeSel = null;
+  function renderHomeTab() {
+    if (!model) return;
+    var s = spotById(alertCfg.home.spot) || allSpots()[0];
+    var n = Math.min(7, model.days.length), stats = [];
+    for (var d = 0; d < n; d++) {
+      var sl = slotsFor(s.id, d), best = null, maxFt = 0;
+      sl.forEach(function (x) { if (x.score !== null && (!best || x.score > best.score)) best = x; if (x.h !== null) maxFt = Math.max(maxFt, x.ft); });
+      var morning = 0, mornCount = 0, dd = model.spots[s.id][d];
+      for (var h = 6; h <= 10; h++) { var c = dd.hour(h); if (c.ws === null) continue; mornCount++; var k = windKind(s, c); if (k === "offshore" || k === "light") morning++; }
+      stats.push({ d: d, best: best, maxFt: maxFt, good: goodWindow(s, d, alertCfg.home), wx: dd.wx, morningOff: mornCount && morning / mornCount >= 0.6, tides: tideTimes(dd) });
+    }
+    document.getElementById("hw-h").textContent = s.name;
+    document.getElementById("hw-sub").innerHTML = esc(s.region + " · offshore " + compass(s.offshore) + " · best on " + compass(s.swell) + " swell") + ' · <a href="#settings" style="color:var(--accent)">change home spot</a>';
+    /* Analysis */
+    var withData = stats.filter(function (x) { return x.best; });
+    var html = "";
+    if (!withData.length) html = '<p class="hint">No swell data for this week yet.</p>';
+    else {
+      var top = withData.slice().sort(function (a, b) { return b.best.score - a.best.score; })[0];
+      var td = model.days[top.d];
+      html += '<div class="verdict-line">Best session: ' + esc((td.dow === "Today" ? "today" : td.wk + " " + td.d) + " at " + clock(top.best.hour)) + ", " + esc(ftRange(top.best.ft)) + " and " + esc({ offshore: "offshore", onshore: "onshore", cross: "cross-shore", light: "light winds", unknown: "" }[top.best.kind]) + ' <span style="color:' + TIER_FILL[tier(top.best.score)] + '">(' + top.best.score + ")</span></div>";
+      var items = [];
+      var goods = stats.filter(function (x) { return x.good; });
+      items.push(goods.length ? goods.length + " good " + (goods.length === 1 ? "day" : "days") + " by your home rules: " + goods.map(function (x) { var dy = model.days[x.d]; return dy.dow + " (" + clock(x.good.start) + "–" + clock(x.good.end + 1) + ")"; }).join(", ") + "." : "No days meet your home rules (" + alertCfg.home.minSwell + " m, " + alertCfg.home.minHours + "+ hours offshore) this week.");
+      var peak = withData.slice().sort(function (a, b) { return b.maxFt - a.maxFt; })[0], low = withData.slice().sort(function (a, b) { return a.maxFt - b.maxFt; })[0];
+      var pd = model.days[peak.d];
+      var trend = peak.d === withData[0].d ? "Biggest " + (pd.dow === "Today" ? "today" : "on " + pd.dow) + " at " + ftRange(peak.maxFt) + ", then easing to " + ftRange(withData[withData.length - 1].maxFt) + " by " + model.days[withData[withData.length - 1].d].wk + "."
+        : peak.d === withData[withData.length - 1].d ? "Building through the week to " + ftRange(peak.maxFt) + " by " + pd.wk + "."
+        : "Building to a peak on " + pd.wk + " " + pd.d + " (" + ftRange(peak.maxFt) + "), then easing.";
+      items.push("Swell: " + trend + (low.maxFt < 1 ? " Smallest on " + model.days[low.d].wk + " (" + ftRange(low.maxFt) + ")." : ""));
+      var offM = stats.filter(function (x) { return x.morningOff; }).length;
+      items.push("Wind: offshore or light in the morning on " + offM + " of " + stats.length + " days." + (offM >= 4 ? " Early sessions are your best bet." : offM <= 1 ? " Not a great week for clean mornings." : ""));
+      var wet = stats.filter(function (x) { return x.wx && x.wx.rain >= 2; });
+      items.push("Weather: " + (wet.length ? "rain likely on " + wet.map(function (x) { return model.days[x.d].wk; }).join(", ") + "." : "mostly dry all week.") + " Warmest " + model.days[stats.slice().sort(function (a, b) { return (b.wx.tmax || 0) - (a.wx.tmax || 0); })[0].d].wk + ".");
+      if (s.tide !== "any") items.push("Tide: " + s.name + " is best on a " + s.tide + " tide" + (s.rising ? ", ideally rising" : "") + ". Check the tide times on each day below.");
+      html += "<ul>" + items.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
+    }
+    document.getElementById("hw-analysis").innerHTML = html;
+    /* Day cards */
+    document.getElementById("hw-days").innerHTML = stats.map(function (x) {
+      var dy = model.days[x.d], wx = x.wx, kind = sky(wx.code);
+      var badge = x.best ? '<span class="score-badge" style="background:' + TIER_FILL[tier(x.best.score)] + '">' + x.best.score + "</span>" : "";
+      return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
+        '<span class="wxs">' + (wx.tmax !== null ? miniSky(kind) + Math.round(wx.tmax) + "°" : "") + "</span>" +
+        '<span><span class="ft">' + (x.best ? esc(ftRange(x.maxFt)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best ' + esc(x.best.lab) + " · " + board(x.best.h) + "</span>" : "") + "</span>" + badge +
+        '<span class="meta">' + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
+    }).join("");
+    /* Chart + conditions */
+    var days = []; for (var i = 0; i < n; i++) days.push(i);
+    document.getElementById("hw-chart").innerHTML = '<div style="padding:0 12px">' + chartSVG(s, days) + "</div>";
+    if (!homeSel || homeSel.sid !== s.id) { var ds = defaultSlot(); homeSel = { sid: s.id, d: 0, k: ds[0] === 0 ? ds[1] : 1 }; }
+    renderCond(homeSel.d, homeSel.k, s.id, "hw-cond");
+    document.getElementById("hw-links").innerHTML = linksHTML(s);
+  }
+  document.getElementById("hw-chart").addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-slot]") : null;
+    if (!t || !model) return;
+    var a = t.getAttribute("data-slot").split(",");
+    homeSel.d = +a[0]; homeSel.k = +a[1];
+    renderCond(homeSel.d, homeSel.k, homeSel.sid, "hw-cond");
+  });
+
   function renderHome() {
     var H = alertCfg.home, el = document.getElementById("home-card");
     var s = spotById(H.spot);
@@ -898,9 +998,7 @@ footer a { color: var(--accent); }
   }
   function fmtHour(h) { return h === 0 ? "12a" : h < 12 ? h + "a" : h === 12 ? "12p" : (h - 12) + "p"; }
 
-  function renderChart() {
-    var s = spotById(state.spot);
-    var days = rangeDays();
+  function chartSVG(s, days) {
     var NS = SLOT_HOURS.length, SW = 28, DW = SW * NS, PADL = 50;
     var W = PADL + days.length * DW + 8;
     var Y = { wx: 34, bars: 112, barsH: 104, slot: 230, sdir: 252, per: 276, wind: 298, ws: 320, tide: 334, tideH: 34, rate: 382, ft: 418, board: 436, end: 446 };
@@ -992,18 +1090,27 @@ footer a { color: var(--accent); }
       });
     });
     var svg = '<svg width="' + W + '" height="' + Y.end + '" viewBox="0 0 ' + W + " " + Y.end + '" role="img" aria-label="Swell, wind, tide and weather chart for ' + esc(s.name) + '">' + g + "</svg>";
-    document.getElementById("chart").innerHTML = '<div style="padding:0 12px">' + svg + "</div>";
-    document.getElementById("chart-title").textContent = s.name;
-    document.getElementById("chart-sub").textContent = s.region + " · offshore " + compass(s.offshore) + " · best on " + compass(s.swell) + " swell" + (s.tide !== "any" ? " · " + s.tide + " tide" : "");
+    return svg;
+  }
+  function linksHTML(s) {
     var smUrl = s.sm || ("https://www.swellmap.com/surf-forecasts/new-zealand?lon=" + s.lon + "&lat=" + s.lat);
+    var slUrl = s.sl || SURFLINE_REGION[s.region] || SURFLINE_NZ;
     var windySwell = "https://www.windy.com/?swell1," + s.lat + "," + s.lon + ",9";
     var windyWind = "https://www.windy.com/?wind," + s.lat + "," + s.lon + ",11";
     var ms = MS[s.ms] || MS.index;
-    document.getElementById("links").innerHTML =
-      '<a class="primary" href="' + esc(smUrl) + '" target="_blank" rel="noopener">' + (s.smName ? "Swellmap · " + esc(s.smName) : "Swellmap map near " + esc(s.name)) + ' ↗</a>' +
+    return '<a class="primary" href="' + esc(smUrl) + '" target="_blank" rel="noopener">' + (s.smName ? "Swellmap · " + esc(s.smName) : "Swellmap map near " + esc(s.name)) + ' ↗</a>' +
+      '<a href="' + esc(slUrl) + '" target="_blank" rel="noopener">' + (s.slName ? "Surfline · " + esc(s.slName) : "Surfline · " + esc(s.region) + " spots") + " ↗</a>" +
       '<a href="' + esc(windySwell) + '" target="_blank" rel="noopener">Windy swell ↗</a>' +
       '<a href="' + esc(windyWind) + '" target="_blank" rel="noopener">Windy wind ↗</a>' +
       '<a href="' + esc(ms.url) + '" target="_blank" rel="noopener">' + esc(ms.label) + " ↗</a>";
+  }
+  function renderChart() {
+    var s = spotById(state.spot);
+    var svg = chartSVG(s, rangeDays());
+    document.getElementById("chart").innerHTML = '<div style="padding:0 12px">' + svg + "</div>";
+    document.getElementById("chart-title").textContent = s.name;
+    document.getElementById("chart-sub").textContent = s.region + " · offshore " + compass(s.offshore) + " · best on " + compass(s.swell) + " swell" + (s.tide !== "any" ? " · " + s.tide + " tide" : "");
+    document.getElementById("links").innerHTML = linksHTML(s);
   }
 
   function pct(x) { return Math.round(x * 100) + "%"; }
@@ -1055,9 +1162,9 @@ footer a { color: var(--accent); }
     g += '<circle cx="100" cy="100" r="3.5" style="fill:var(--fg)"/>';
     return '<svg viewBox="0 0 200 200" width="200" height="200" aria-hidden="true">' + g + "</svg>";
   }
-  function renderCond(d, k) {
-    var s = spotById(state.spot), x = slotsFor(s.id, d)[k], day = model.days[d], c = x.c;
-    var el = document.getElementById("cond");
+  function renderCond(d, k, sid, elId) {
+    var s = spotById(sid || state.spot), x = slotsFor(s.id, d)[k], day = model.days[d], c = x.c;
+    var el = document.getElementById(elId || "cond");
     function line(col, h, T, dir, name) {
       if (h === null || h === undefined || h < 0.05) return "";
       return '<span><i style="background:' + col + '"></i>' + h.toFixed(1) + " m</span><span>" + (T ? Math.round(T) + " s" : "") + "</span><span>" + (dir !== null && dir !== undefined ? compass(dir) + " " + Math.round(dir) + "° · " + name : name) + "</span>";
@@ -1139,6 +1246,7 @@ footer a { color: var(--accent); }
   function renderAll(resetRegion) {
     renderStrip();
     renderHome();
+    renderHomeTab();
     renderRuns();
     renderTrips();
     if (resetRegion || !state.region) chooseRegion(trips[0].name);
@@ -1203,10 +1311,15 @@ footer a { color: var(--accent); }
       renderAll(true);
       return;
     }
+    if (t.hasAttribute("data-hwday")) {
+      var hd = +t.getAttribute("data-hwday"), hs2 = spotById(alertCfg.home.spot), bs = bestSlot(hs2.id, hd);
+      homeSel = { sid: hs2.id, d: hd, k: bs ? SLOT_LAB.indexOf(bs.lab) : 1 };
+      renderCond(homeSel.d, homeSel.k, homeSel.sid, "hw-cond");
+      try { document.getElementById("hw-cond").scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
+      return;
+    }
     if (t.hasAttribute("data-home")) {
-      var hs = spotById(t.getAttribute("data-home"));
-      state.region = hs.region; state.spot = hs.id; renderTrips(); renderSpot();
-      try { document.getElementById("spot-section").scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
+      location.hash = "home";
       return;
     }
     if (t.hasAttribute("data-run")) {
@@ -1279,12 +1392,12 @@ footer a { color: var(--accent); }
       if (alertCfg[g].endHour < alertCfg[g].startHour) alertCfg[g].endHour = alertCfg[g].startHour;
     }
     store(ALERT_KEY, alertCfg);
-    renderAlertForm(); if (model) { renderHome(); renderRuns(); }
+    renderAlertForm(); if (model) { renderHome(); renderHomeTab(); renderRuns(); }
   });
   document.getElementById("alert-reset").addEventListener("click", function () {
     alertCfg = upgradeCfg(alertRepoCfg);
     try { localStorage.removeItem(ALERT_KEY); localStorage.removeItem("surf-trip-alerts-v1"); } catch (e) {}
-    renderAlertForm(); if (model) { renderHome(); renderRuns(); }
+    renderAlertForm(); if (model) { renderHome(); renderHomeTab(); renderRuns(); }
   });
   document.getElementById("alert-send").addEventListener("click", function () {
     var text = JSON.stringify(normCfg(alertCfg), null, 2) + "\n";
@@ -1300,11 +1413,11 @@ footer a { color: var(--accent); }
     if (!j) return;
     alertRepoCfg = j;
     if (!load(ALERT_KEY) && !load("surf-trip-alerts-v1")) alertCfg = upgradeCfg(j);
-    renderAlertForm(); if (model) { renderHome(); renderRuns(); }
+    renderAlertForm(); if (model) { renderHome(); renderHomeTab(); renderRuns(); }
   }).catch(function () {});
 
   renderAlertForm();
-  var PAGES = ["plan", "runs", "settings"];
+  var PAGES = ["plan", "home", "runs", "settings"];
   function showPage(name, noScroll) {
     if (PAGES.indexOf(name) < 0) name = "plan";
     document.querySelectorAll("[data-page]").forEach(function (el) { el.hidden = el.getAttribute("data-page") !== name; });
