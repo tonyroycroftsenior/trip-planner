@@ -252,7 +252,7 @@ footer a { color: var(--accent); }
         <span><i style="background:var(--score-bad)"></i>Poor under 60</span>
         <span><i style="background:var(--wind-off)"></i>Offshore wind</span><span><i style="background:var(--wind-on)"></i>Onshore wind</span><span><i style="background:var(--wind-other)"></i>Cross-shore or light wind</span>
         <span>Surf ft: estimated breaking wave height</span>
-        <span>Board: LB longboard (swell 1.0 m or less), SB shortboard (over 1.0 m)</span>
+        <span>Board: LB longboard (0–2 ft), L/S either (1–2 ft), SB shortboard (2 ft and up)</span>
       </div>
     </div>
     <div class="links" id="links"></div>
@@ -279,14 +279,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 32 · surf size recalibrated</span>
+    <span>App version 33 · board picks by surf height in feet</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 32;
+  var APP_VERSION = 33;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -815,7 +815,7 @@ footer a { color: var(--accent); }
       var badge = x.best ? '<span class="score-badge" style="background:' + TIER_FILL[tier(x.best.score)] + '">' + x.best.score + "</span>" : "";
       return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
         '<span class="wxs">' + (wx.tmax !== null ? miniSky(kind) + Math.round(wx.tmax) + "°" : "") + "</span>" +
-        '<span><span class="ft">' + (x.best ? esc(ftRange(x.maxFt)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best ' + esc(x.best.lab) + " · " + board(x.best.h) + "</span>" : "") + "</span>" + badge +
+        '<span><span class="ft">' + (x.best ? esc(ftRange(x.maxFt)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best ' + esc(x.best.lab) + " · " + board(x.best.ft) + "</span>" : "") + "</span>" + badge +
         '<span class="meta">' + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
     }).join("");
     /* Chart + conditions */
@@ -867,7 +867,7 @@ footer a { color: var(--accent); }
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
-        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ") · " + ftRange(x.pick.slot.ft) + " · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.h) + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
+        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ") · " + ftRange(x.pick.slot.ft) + " · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.ft) + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
       });
       html += "</ul></div>";
     }
@@ -879,7 +879,16 @@ footer a { color: var(--accent); }
     }).join("");
   }
 
-  function board(h) { return h <= 1.0 ? "longboard" : "shortboard"; }
+  /* Board by surf height in feet: 0-2 ft longboard, 1-2 ft either, 2 ft and up shortboard */
+  function boardCode(ft) {
+    if (ft === null || ft === undefined) return "";
+    var lo = Math.max(0, Math.floor(ft * 0.8)), hi = Math.max(1, Math.ceil(ft * 1.2));
+    if (hi <= lo) hi = lo + 1;
+    if (lo === 0) return "LB";
+    if (lo === 1 && hi <= 2) return "LB/SB";
+    return "SB";
+  }
+  function board(ft) { return { LB: "longboard", "LB/SB": "longboard or shortboard", SB: "shortboard" }[boardCode(ft)] || ""; }
   /* Rough breaking-wave face height in feet. Each wave train (swell and local wind waves) is scaled by period and by how
      directly it hits the beach, then combined. Calibrated against a Surfline reading at Tay Street (1.7 m 6 s NNE + 0.4 m 12 s N = 1-3 ft). */
   function trainFt(h, T, dir, s) {
@@ -1068,7 +1077,7 @@ footer a { color: var(--accent); }
           var ty2 = x.score !== null ? tier(x.score) : "poor";
           var top = yOf(x.h);
           var tip = day.wk + " " + x.lab + ": " + x.h.toFixed(1) + " m, " + (x.p !== null ? Math.round(x.p) + " s" : "") + (x.d !== null ? " from " + compass(x.d) : "") +
-            (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "") + ", " + board(x.h);
+            (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "") + ", " + board(x.ft);
           g += '<rect x="' + (sx + 4) + '" y="' + top + '" width="' + (SW - 8) + '" height="' + Math.max(1, yOf(0) - top) + '" rx="2" style="fill:' + TIER_FILL[ty2] + '"><title>' + esc(tip) + "</title></rect>";
           g += txt(scx, top - 4, x.h.toFixed(1), { fill: "var(--fg)", size: 9 });
           if (x.d !== null) g += arrow(scx, Y.sdir, x.d, "var(--fg)", 0.85);
@@ -1088,7 +1097,7 @@ footer a { color: var(--accent); }
         }
         g += '<rect class="hit" data-slot="' + d + "," + k + '" x="' + sx + '" y="34" width="' + SW + '" height="' + (Y.end - 34) + '" style="fill:transparent;cursor:pointer"/>';
         if (x.h !== null) g += txt(scx, Y.ft, x.ft < 0.4 ? "flat" : ftRange(x.ft).replace(" ft", ""), { size: 9, fill: "var(--fg)", weight: 500 });
-        if (x.h !== null) g += txt(scx, Y.board, x.h <= 1.0 ? "LB" : "SB", { size: 9, fill: x.h <= 1.0 ? "var(--fair)" : "var(--fg)", weight: 500 });
+        if (x.h !== null) { var bc = boardCode(x.ft); g += txt(scx, Y.board, bc === "LB/SB" ? "L/S" : bc, { size: 9, fill: bc === "SB" ? "var(--fg)" : bc === "LB" ? "var(--fair)" : "var(--accent)", weight: 500 }); }
       });
     });
     var svg = '<svg width="' + W + '" height="' + Y.end + '" viewBox="0 0 ' + W + " " + Y.end + '" role="img" aria-label="Swell, wind, tide and weather chart for ' + esc(s.name) + '">' + g + "</svg>";
@@ -1175,7 +1184,7 @@ footer a { color: var(--accent); }
     var windTxt = c.ws === null ? "no wind data" : Math.round(c.ws) + " kts " + compass(c.wdir) + (c.gust !== null ? ", gusts " + Math.round(c.gust) : "");
     var kindWord = { offshore: "Offshore", onshore: "Onshore", cross: "Cross-shore", light: "Light", unknown: "" }[x.kind];
     el.innerHTML = '<div class="facts"><div class="when">' + esc(day.wk + " " + day.d + " " + day.m + " · " + x.lab) + " · tap the chart to change</div>" +
-      '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + " · " + board(x.h)) + "</div></div>" +
+      '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + " · " + board(x.ft)) + "</div></div>" +
       '<div><div class="label">Wind</div><div class="big" style="font-size:20px">' + esc(windTxt) + '</div><div class="sub2" style="color:' + windCol + ';font-weight:600">' + esc(kindWord) + "</div></div>" +
       '<div><div class="label">Swell</div><div class="lines">' + line("var(--sun)", c.sh, c.sp, c.sd, "swell") + line("var(--accent)", c.wwh, c.wwp, c.wwd, "wind waves") + "</div></div></div>" +
       '<div class="compass' + (linzKey() ? " sat" : "") + '"><div class="tiles">' + mapTiles(s.lat, s.lon, 200) + "</div>" + compassSVG(s, x) + '<span class="attr">' + (linzKey() ? "Imagery © LINZ CC BY 4.0" : "© OpenStreetMap") + "</span></div>";
