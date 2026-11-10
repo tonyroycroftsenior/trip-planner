@@ -393,12 +393,6 @@ footer a { color: var(--accent); }
 
   <section class="stack" aria-labelledby="set-h" id="settings-sec" data-page="settings" hidden>
     <h2 id="set-h">Settings</h2>
-    <details class="settings" id="sm-settings">
-      <summary>Swellmap data</summary>
-      <p class="hint" style="margin-top:8px">For spots with a Swellmap page, swell, wind, size and rating come from Swellmap, updated every 6 hours. The data is stored locked; this phone needs the key once.</p>
-      <div class="form-actions"><input id="sm-key" type="text" autocomplete="off" spellcheck="false" placeholder="Swellmap key" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;flex:1 1 220px;min-width:0"><button class="btn" type="button" id="sm-save">Save key</button></div>
-      <p class="hint" id="sm-status" style="margin-top:8px"></p>
-    </details>
     <details class="settings" id="notif-settings" open>
       <summary>Notifications</summary>
       <p class="hint" style="margin-top:8px">Each morning at about 6:40am you get one GitHub notification for anything new below. These settings also decide what shows under Good runs and Home spot.</p>
@@ -413,7 +407,7 @@ footer a { color: var(--accent); }
     <p>Days Offshore helps you plan surf trips around your days off. Pick the days you're free and it ranks each region by how good the waves look, shows the best spot each day, and gives you a full swell, wind, tide and weather forecast for every spot.</p>
 
     <h3>Where the forecast comes from</h3>
-    <p>At spots with a Swellmap page, swell, wind, surf size (Swellmap's set face height) and Swellmap's 0–10 rating come from Swellmap, collected every 6 hours for personal use. Everywhere else, and beyond Swellmap's 7 days, swell and wave heights are the average of four free global wave models (Météo-France, ECMWF, NOAA GFS and DWD), fetched through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. When the models disagree a lot, the Waves panel says so. Wind and weather also come from Open-Meteo. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times and heights are LINZ's official predictions for the nearest standard port (Tauranga, Onehunga, Port Taranaki or Gisborne), so they match printed tide tables. Spots away from the port can be up to about half an hour different.</p>
+    <p>Swell and wave heights are the average of four free global wave models (Météo-France, ECMWF, NOAA GFS and DWD), fetched through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. When the models disagree a lot, the Waves panel says so. Wind and weather also come from Open-Meteo. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times and heights are LINZ's official predictions for the nearest standard port (Tauranga, Onehunga, Port Taranaki or Gisborne), so they match printed tide tables. Spots away from the port can be up to about half an hour different.</p>
 
     <h3>Wave score (0–100)</h3>
     <p>Each spot gets a score at 6am, 9am, 12pm, 3pm and 6pm. It's built from three parts:</p>
@@ -462,16 +456,16 @@ footer a { color: var(--accent); }
 
   <footer>
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
-    <span>Forecasts from Swellmap (MetOcean) where available, otherwise <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>. Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
+    <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 52 · Swellmap data</span>
+    <span>App version 53 · four-model wave average</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 52;
+  var APP_VERSION = 53;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -769,63 +763,6 @@ footer a { color: var(--accent); }
     return mdl;
   }
 
-  /* ---- Swellmap (personal use): fetched every 6 hours by a GitHub job, saved encrypted; only a phone with the key can read it ---- */
-  var SM_KEY_STORE = "surf-trip-swellmap-key-v1";
-  var sm = null; /* { fetchedAt, spots: { id: { time:[], wave:[], ... } } } */
-  var smStatus = "";
-  function b64u(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-  function b64(s) { return b64u(s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")); }
-  function smKey() { return load(SM_KEY_STORE) || ""; }
-  function loadSwellmap() {
-    var d = smKey();
-    if (!d || !window.crypto || !crypto.subtle) { smStatus = d ? "This browser can't unlock Swellmap data." : ""; return Promise.resolve(); }
-    var pubP = fetch("swellmap-key.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.json(); });
-    var encP = fetch("swellmap.enc.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.json(); });
-    return Promise.all([pubP, encP]).then(function (r) {
-      var pub = r[0], enc = r[1], sub = crypto.subtle, curve = { name: "ECDH", namedCurve: "P-256" };
-      return Promise.all([
-        sub.importKey("jwk", { kty: "EC", crv: "P-256", x: pub.x, y: pub.y, d: d, ext: true }, curve, false, ["deriveBits"]),
-        sub.importKey("jwk", { kty: "EC", crv: "P-256", x: enc.epk.x, y: enc.epk.y, ext: true }, curve, false, [])
-      ]).then(function (k) { return sub.deriveBits({ name: "ECDH", public: k[1] }, k[0], 256); })
-        .then(function (bits) { return sub.importKey("raw", bits, "HKDF", false, ["deriveKey"]); })
-        .then(function (hk) { var te = new TextEncoder(); return sub.deriveKey({ name: "HKDF", hash: "SHA-256", salt: te.encode("days-offshore"), info: te.encode("swellmap") }, hk, { name: "AES-GCM", length: 256 }, false, ["decrypt"]); })
-        .then(function (aes) { return sub.decrypt({ name: "AES-GCM", iv: b64(enc.iv) }, aes, b64(enc.ct)); })
-        .then(function (pt) { sm = JSON.parse(new TextDecoder().decode(pt)); smStatus = "on"; });
-    }).catch(function () { sm = null; smStatus = "Couldn't unlock the Swellmap data. Check the key."; });
-  }
-  function smMinutes(t) { return minutesOf(t.slice(0, 4) + "-" + t.slice(4, 6) + "-" + t.slice(6, 8), t.slice(8, 10) + ":" + t.slice(10, 12)); }
-  function lerpDir(a, b, f) { var d = ((b - a + 540) % 360) - 180; return (a + d * f + 360) % 360; }
-  function smAt(sid, m) {
-    var o = sm && sm.spots[sid]; if (!o || !o.time) return null;
-    if (!o._m) o._m = o.time.map(smMinutes);
-    var t = o._m; if (m < t[0] || m > t[t.length - 1]) return null;
-    var i = 0; while (i < t.length - 2 && t[i + 1] <= m) i++;
-    var f = (m - t[i]) / Math.max(1, t[i + 1] - t[i]);
-    function L(k) { var a = o[k] && o[k][i], b = o[k] && o[k][i + 1]; if (a === null || a === undefined) return b === undefined ? null : b; if (b === null || b === undefined) return a; return a + (b - a) * f; }
-    function D(k) { var a = o[k] && o[k][i], b = o[k] && o[k][i + 1]; if (a === null || a === undefined) return b === undefined ? null : b; if (b === null || b === undefined) return a; return lerpDir(a, b, f); }
-    return { wave: L("wave"), swell: L("swell"), period: L("period"), swell_dir: D("swell_dir"), sea_dir: D("sea_dir"), face: L("set_face"), rating: L("rating"), ws: L("wind_sp"), wdir: D("wind_dir"), gust: L("wind_gust") };
-  }
-  function applySwellmap(mdl) {
-    if (!sm) return mdl;
-    Object.keys(sm.spots).forEach(function (sid) {
-      if (!mdl.spots[sid]) return;
-      mdl.spots[sid].forEach(function (dd, di) {
-        var key = mdl.days[di].key, orig = dd.hour;
-        dd.hour = function (h) {
-          var c = orig(h), o = smAt(sid, minutesOf(key, (h < 10 ? "0" : "") + h + ":00"));
-          if (!o || o.wave === null) return c;
-          c.wh = o.wave; c.sh = o.swell; c.sp = o.period; c.sd = o.swell_dir;
-          c.wwh = o.wave !== null && o.swell !== null ? Math.sqrt(Math.max(0, o.wave * o.wave - o.swell * o.swell)) : null; c.wwp = null; c.wwd = o.sea_dir;
-          c.wp = o.period; c.wd = o.swell_dir;
-          if (o.ws !== null) { c.ws = o.ws; c.wdir = o.wdir; c.gust = o.gust; }
-          c.smFace = o.face; c.smRating = o.rating; c.src = "swellmap"; c.whMin = null; c.whMax = null;
-          return c;
-        };
-      });
-    });
-    return mdl;
-  }
-
   function buildModel(raw) {
     var anyW = null;
     Object.keys(raw.spots).forEach(function (k) { if (!anyW && raw.spots[k].w && raw.spots[k].w.daily) anyW = raw.spots[k].w; });
@@ -879,7 +816,7 @@ footer a { color: var(--accent); }
       });
       spots[base.id] = perDay;
     });
-    return applySwellmap(applyLinz({ days: days, spots: spots, fetchedAt: raw.fetchedAt }));
+    return applyLinz({ days: days, spots: spots, fetchedAt: raw.fetchedAt });
   }
 
   function tideInfo(tides, h) {
@@ -1273,7 +1210,7 @@ footer a { color: var(--accent); }
         lineChart([{ v: tv, t: tt, col: "var(--accent)", fill: true }, { v: sv, t: tt, col: "var(--sun)", dash: "7 4" }, { v: wv, t: tt, col: "var(--rain)", dash: "2 4" }], n, "Wave height (m)", 2) +
         '<div class="shead"><span class="label">Next</span>' + btns + "</div>" +
         (tv[pk] !== null ? '<div style="font-weight:600;color:var(--fair)">Peak ' + hv(tv[pk]) + " m at " + esc(clock(rows[pk].h24)) + (rows[pk].d !== c.d ? " " + esc(model.days[rows[pk].d].wk) : "") + " · from " + esc(dirTxt(rows[pk].wd)) + "</div>" : "") +
-        '<p class="hint">' + (c.src === "swellmap" ? "Swellmap forecast (MetOcean's NZ models) for " + esc(s.name) + ", 3-hourly, smoothed to each hour. Swellmap's rating this hour: " + (Math.round(c.smRating * 10) / 10) + "/10." : "Open-Meteo wave models for the sea just off " + esc(s.name) + ".") + " A forecast, not measured waves.</p></div>" +
+        '<p class="hint">Open-Meteo wave models for the sea just off ' + esc(s.name) + ". A forecast, not measured waves.</p></div>" +
         '<div class="sbox"><div class="label">Hour by hour</div><div class="htable"><table><thead><tr><th>Time</th><th>Total</th><th>Swell</th><th>Wind waves</th><th>Period</th><th>From</th></tr></thead><tbody>' +
         rows.map(function (r) { if (!r) return ""; return "<tr><td>" + esc((r.d !== c.d ? model.days[r.d].wk + " " : "") + clock(r.h24)) + '</td><td style="color:var(--accent);font-weight:600">' + hv(r.wh) + "</td><td>" + hv(r.sh) + "</td><td>" + hv(r.wwh) + "</td><td>" + hv(r.wp) + " s</td><td>" + (r.wd !== null ? arrowIcon(r.wd, "var(--fg)") + " " + esc(compass(r.wd)) : "–") + "</td></tr>"; }).join("") +
         "</tbody></table></div><p class=\"hint\">Heights in metres.</p></div>";
@@ -1497,7 +1434,7 @@ footer a { color: var(--accent); }
       return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
         '<span class="wxs">' + (wx.tmax !== null ? miniSky(kind) + Math.round(wx.tmax) + "°" : "") + "</span>" +
         '<span><span class="ft">' + (x.best ? esc(ftRange(x.best.ft)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best at ' + esc(clock(x.best.hour)) + " · " + board(x.best.ft) + (ftRange(x.maxFt) !== ftRange(x.best.ft) ? " · up to " + esc(ftRange(x.maxFt)) + " during the day" : "") + "</span>" : "") + "</span>" + badge +
-        '<span class="meta">' + (x.best && x.best.c && x.best.c.src === "swellmap" ? "Swellmap " + (Math.round(x.best.c.smRating * 10) / 10) + "/10 · " : "") + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
+        '<span class="meta">' + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
     }).join("");
     /* Chart + conditions */
     var days = []; for (var i = 0; i < n; i++) days.push(i);
@@ -1586,10 +1523,6 @@ footer a { color: var(--accent); }
   /* Overall size calibration against the real Open-Meteo forecast: Tay Street read 0-2 ft on 10 Nov 2026 when Surfline had 1-3 ft */
   var SIZE_CAL = 1.8;
   function surfFt(s, c) {
-    if (c.smFace !== null && c.smFace !== undefined) {
-      var userExp = overrides[s.id] && overrides[s.id].exp ? overrides[s.id].exp : 1;
-      return c.smFace * 3.28 * userExp;
-    }
     var sw = trainFt(c.sh, c.sp, c.sd, s);
     var ww = c.wwh !== null && c.wwh !== undefined ? trainFt(c.wwh, c.wwp, c.wwd, s) : 0;
     if (!sw && !ww) sw = trainFt(c.wh, c.wp, c.wd, s);
@@ -1876,8 +1809,7 @@ footer a { color: var(--accent); }
     el.innerHTML = '<div class="facts"><div class="when">' + esc(day.wk + " " + day.d + " " + day.m + " · " + clock(x.hour)) + " · tap the chart to change</div>" +
       '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + " · " + board(x.ft)) + "</div></div>" +
       '<div><div class="label">Wind</div><div class="big" style="font-size:20px">' + esc(windTxt) + '</div><div class="sub2" style="color:' + windCol + ';font-weight:600">' + esc(kindWord) + "</div></div>" +
-      '<div><div class="label">Swell</div><div class="lines">' + line("var(--sun)", c.sh, c.sp, c.sd, "swell") + line("var(--accent)", c.wwh, c.wwp, c.wwd, "wind waves") + "</div></div>" +
-      (c.src === "swellmap" ? '<div class="sub2">Swellmap · rating <b style="color:var(--fg)">' + (Math.round(c.smRating * 10) / 10) + '/10</b> · set face ' + c.smFace.toFixed(1) + " m</div>" : '<div class="sub2">Open-Meteo four-model average</div>') + "</div>" +
+      '<div><div class="label">Swell</div><div class="lines">' + line("var(--sun)", c.sh, c.sp, c.sd, "swell") + line("var(--accent)", c.wwh, c.wwp, c.wwd, "wind waves") + "</div></div></div>" +
       '<div class="compass' + (linzKey() ? " sat" : "") + '"><div class="tiles">' + mapTiles(s.lat, s.lon, 200) + "</div>" + compassSVG(s, x) + '<span class="attr">' + (linzKey() ? "Imagery © LINZ CC BY 4.0" : "© OpenStreetMap") + "</span></div>";
   }
   function defaultSlot() {
@@ -1969,8 +1901,7 @@ footer a { color: var(--accent); }
 
   var linzReady = (function () { var y = +new Date().toLocaleDateString("en-CA", { timeZone: TZ }).slice(0, 4); return loadLinz([y, y + 1]); })();
   function loadForecast(force) {
-    var smReady = loadSwellmap();
-    Promise.all([linzReady.catch(function () {}), smReady.catch(function () {})]).then(function () { renderSmSettings(); loadForecastInner(force); });
+    linzReady.then(function () { loadForecastInner(force); }, function () { loadForecastInner(force); });
   }
   function loadForecastInner(force) {
     var cached = load(CACHE_KEY);
@@ -2229,25 +2160,6 @@ footer a { color: var(--accent); }
   });
   window.addEventListener("hashchange", function () { showPage(location.hash.slice(1)); });
   showPage(location.hash.slice(1), true);
-
-  function renderSmSettings() {
-    var st = document.getElementById("sm-status"); if (!st) return;
-    if (sm) {
-      var n = Object.keys(sm.spots).length, t = new Date(sm.fetchedAt);
-      st.textContent = "Swellmap is on for " + n + " spots. Last updated " + t.toLocaleString("en-NZ", { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" }) + ".";
-    } else st.textContent = smStatus || "Swellmap is off. Spots use the Open-Meteo four-model average.";
-  }
-  document.getElementById("sm-save").addEventListener("click", function () {
-    var v = document.getElementById("sm-key").value.trim();
-    if (v) store(SM_KEY_STORE, v); else { try { localStorage.removeItem(SM_KEY_STORE); } catch (e) {} }
-    document.getElementById("sm-key").value = "";
-    document.getElementById("sm-status").textContent = "Unlocking…";
-    loadForecast(true);
-  });
-  (function () {
-    var m = location.search.match(/[?&]smkey=([A-Za-z0-9_-]{30,60})/);
-    if (m) { store(SM_KEY_STORE, m[1]); history.replaceState(null, "", location.pathname + location.hash); }
-  })();
 
   renderOrigin();
   loadForecast(false);
