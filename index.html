@@ -308,10 +308,10 @@ footer a { color: var(--accent); }
   <section class="stack" aria-labelledby="hw-h" data-page="home" hidden>
     <div><div class="label">Your home spot · next 7 days</div><h2 id="hw-h" style="font-size:24px">–</h2><p class="hint" id="hw-sub"></p></div>
     <button class="btn primary-btn log-cta" type="button" id="log-open">How was your surf? Log a session</button>
+    <div class="cond" id="hw-cond"></div>
     <div class="now-card" id="now-card"></div>
     <div class="hw-analysis" id="hw-analysis"></div>
     <div class="hw-days" id="hw-days"></div>
-    <div class="cond" id="hw-cond"></div>
     <div class="chart-card">
       <div class="top"><div><div class="label">Hour by hour</div><h2>Swell, wind, tide and weather</h2></div><span class="label">scroll sideways · tap a time</span></div>
       <div class="scroll" id="hw-chart"></div>
@@ -464,14 +464,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 58 · day forecast folds open</span>
+    <span>App version 59 · conditions panel at top of Home</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 58;
+  var APP_VERSION = 59;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
