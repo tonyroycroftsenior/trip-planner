@@ -407,7 +407,7 @@ footer a { color: var(--accent); }
     <p>Days Offshore helps you plan surf trips around your days off. Pick the days you're free and it ranks each region by how good the waves look, shows the best spot each day, and gives you a full swell, wind, tide and weather forecast for every spot.</p>
 
     <h3>Where the forecast comes from</h3>
-    <p>Swell, wind waves, wind, tide and weather all come from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, which combines global forecast models. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times are reliable, but tide heights near the coast are approximate.</p>
+    <p>Swell, wind waves, wind, tide and weather all come from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, which combines global forecast models. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times and heights are LINZ's official predictions for the nearest standard port (Tauranga, Onehunga, Port Taranaki or Gisborne), so they match printed tide tables. Spots away from the port can be up to about half an hour different.</p>
 
     <h3>Wave score (0–100)</h3>
     <p>Each spot gets a score at 6am, 9am, 12pm, 3pm and 6pm. It's built from three parts:</p>
@@ -456,16 +456,16 @@ footer a { color: var(--accent); }
 
   <footer>
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
-    <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
+    <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 49 · offshore within 40°</span>
+    <span>App version 50 · LINZ tides</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 49;
+  var APP_VERSION = 50;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -500,27 +500,27 @@ footer a { color: var(--accent); }
   /* offshore = wind direction (from) that blows offshore; swell = best swell direction (from); width = how wide a swell window it takes;
      lo/hi = swell height range in metres it handles well; tide = any|low|mid|high; rising = prefers a rising tide; drive = hours from Mount */
   var SPOTS_DEFAULT = [
-    { id: "mount", name: "Mount Main Beach", region: "Mount Maunganui", lat: -37.632, lon: 176.180, offshore: 210, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/mt-maunganui-main-beach/5842041f4e65fad6a7708d84", slName: "Mt Maunganui Main Beach", sf: "https://www.surf-forecast.com/breaks/Taystreet", sfName: "Tay Street" },
-    { id: "taystreet", name: "Tay Street", region: "Mount Maunganui", lat: -37.650, lon: 176.200, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/tay-street/584204204e65fad6a7709670", slName: "Tay Street", sf: "https://www.surf-forecast.com/breaks/Taystreet", sfName: "Tay Street" },
-    { id: "papamoa", name: "Papamoa", region: "Mount Maunganui", lat: -37.700, lon: 176.300, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.3, ms: "tauranga", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/papamoa-beach", smName: "Papamoa Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/papamoa/6168a7a5cb771a17201e2362", slName: "Papamoa", sf: "https://www.surf-forecast.com/breaks/Arataki", sfName: "Arataki" },
-    { id: "ohope", name: "Ohope Beach", region: "Ohope", lat: -37.960, lon: 177.040, offshore: 202, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 1.3, ms: "ohope", sm: "https://www.swellmap.com/surfing/new-zealand/ohope-beach", smName: "Ohope Beach", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Ohope-Beach", sfName: "Ohope Beach" },
-    { id: "waihi", name: "Waihi Beach", region: "Coromandel", lat: -37.405, lon: 175.940, offshore: 240, swell: 60, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.0, ms: "waihi" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/waihi-beach", smName: "Waihi Beach", exp: 1.0 },
-    { id: "whangamata", name: "Whangamata", region: "Coromandel", lat: -37.220, lon: 175.880, offshore: 225, swell: 45, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 1.5, ms: "whangamata" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/whangamata", smName: "Whangamata", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Whangamata-Beach", sfName: "Whangamata Beach" },
-    { id: "opoutere", name: "Opoutere", region: "Coromandel", lat: -37.110, lon: 175.890, offshore: 260, swell: 70, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.7, ms: "whangamata", exp: 1.0 },
-    { id: "tairua", name: "Tairua", region: "Coromandel", lat: -37.000, lon: 175.860, offshore: 225, swell: 45, width: 45, lo: 0.7, hi: 2.2, tide: "mid", rising: true, drive: 2.0, ms: "whitianga" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/tairua-beach", smName: "Tairua Beach", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Tairua-Beach", sfName: "Tairua Beach" },
-    { id: "manu", name: "Manu Bay", region: "Raglan", lat: -37.820, lon: 174.810, offshore: 135, swell: 235, width: 40, lo: 1.0, hi: 3.5, tide: "low", rising: false, drive: 2.5, ms: "raglan" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/manu-bay", smName: "Manu Bay", exp: 0.85, sl: "https://www.surfline.com/surf-report/raglan-manu-bay/616899fddc9629291807fafc", slName: "Raglan Manu Bay", sf: "https://www.surf-forecast.com/breaks/Raglan-Manu-Bay", sfName: "Manu Bay" },
-    { id: "ngarunui", name: "Ngarunui (main beach)", region: "Raglan", lat: -37.805, lon: 174.825, offshore: 112, swell: 247, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 2.5, ms: "raglan", exp: 1.0, sl: "https://www.surfline.com/surf-report/raglan/5842041f4e65fad6a7708d7e", slName: "Raglan", sf: "https://www.surf-forecast.com/breaks/Ngarunui-Beach", sfName: "Ngarunui Beach" },
-    { id: "fitzroy", name: "Fitzroy", region: "Taranaki", lat: -39.050, lon: 174.100, offshore: 135, swell: 270, width: 50, lo: 0.8, hi: 2.5, tide: "high", rising: true, drive: 4.6, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/fitzroy-beach", smName: "Fitzroy Beach", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Fitzroy-Beach", sfName: "Fitzroy Beach" },
-    { id: "kumera", name: "Kumera Patch", region: "Taranaki", lat: -39.150, lon: 173.850, offshore: 157, swell: 225, width: 45, lo: 1.0, hi: 3.0, tide: "any", rising: false, drive: 4.9, ms: "newplymouth", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Kumera-Patch", sfName: "Kumera Patch" },
-    { id: "stent", name: "Stent Road", region: "Taranaki", lat: -39.220, lon: 173.780, offshore: 90, swell: 245, width: 50, lo: 1.0, hi: 3.5, tide: "any", rising: false, drive: 5.0, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/stent-road", smName: "Stent Road", exp: 1.0, sl: "https://www.surfline.com/surf-report/stent-road/5842041f4e65fad6a7708d8f", slName: "Stent Road", sf: "https://www.surf-forecast.com/breaks/Stent-Road/forecasts/latest/six_day", sfName: "Stent Road" },
-    { id: "opunake", name: "Opunake", region: "Taranaki", lat: -39.460, lon: 173.860, offshore: 22, swell: 225, width: 50, lo: 0.8, hi: 3.0, tide: "any", rising: false, drive: 5.3, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/opunake", smName: "Opunake", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Opunake-Beach", sfName: "Opunake Beach" },
-    { id: "midway", name: "Midway (main beach)", region: "Gisborne", lat: -38.683, lon: 178.000, offshore: 0, swell: 200, width: 45, lo: 0.7, hi: 2.4, tide: "any", rising: false, drive: 4.3, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/waikanae-beach", smName: "Waikanae Beach", exp: 0.8},
-    { id: "wainui", name: "Wainui", region: "Gisborne", lat: -38.690, lon: 178.070, offshore: 300, swell: 75, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 4.4, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/wainui-beach", smName: "Wainui Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/wainui-beach/5842041f4e65fad6a7708d82", slName: "Wainui Beach" },
-    { id: "makorori", name: "Makorori", region: "Gisborne", lat: -38.650, lon: 178.130, offshore: 337, swell: 67, width: 60, lo: 0.8, hi: 2.8, tide: "high", rising: true, drive: 4.5, ms: "gisborne", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Makarori-North", sfName: "Makarori North" },
-    { id: "kaiaua", name: "Kaiaua Bay", region: "East Cape", lat: -38.310, lon: 178.330, offshore: 315, swell: 170, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 5.0, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/kaiaua", smName: "Kaiaua", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Kaiaua-Bay/forecasts/latest/six_day", sfName: "Kaiaua Bay" },
-    { id: "mahanga", name: "Mahanga", region: "Mahia", lat: -39.030, lon: 177.970, offshore: 270, swell: 90, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 5.6, ms: "wairoa" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/mahanga-beach", smName: "Mahanga Beach", exp: 1.0 },
-    { id: "opoutama", name: "Opoutama", region: "Mahia", lat: -39.070, lon: 177.860, offshore: 45, swell: 180, width: 45, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 5.5, ms: "wairoa", exp: 0.7, sf: "https://www.surf-forecast.com/breaks/Opoutama-Beach", sfName: "Opoutama Beach" },
-    { id: "blacks", name: "Blacks Reef", region: "Mahia", lat: -39.070, lon: 177.800, offshore: 22, swell: 157, width: 40, lo: 1.0, hi: 3.0, tide: "mid", rising: true, drive: 5.5, ms: "wairoa" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/blacks", smName: "Blacks", exp: 0.85, sf: "https://www.surf-forecast.com/breaks/Blacks-Reef", sfName: "Blacks Reef" }
+    { id: "mount", name: "Mount Main Beach", region: "Mount Maunganui", lat: -37.632, lon: 176.180, offshore: 210, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/mt-maunganui-main-beach/5842041f4e65fad6a7708d84", slName: "Mt Maunganui Main Beach", sf: "https://www.surf-forecast.com/breaks/Taystreet", sfName: "Tay Street", port: "Tauranga" },
+    { id: "taystreet", name: "Tay Street", region: "Mount Maunganui", lat: -37.650, lon: 176.200, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/tay-street/584204204e65fad6a7709670", slName: "Tay Street", sf: "https://www.surf-forecast.com/breaks/Taystreet", sfName: "Tay Street", port: "Tauranga" },
+    { id: "papamoa", name: "Papamoa", region: "Mount Maunganui", lat: -37.700, lon: 176.300, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.3, ms: "tauranga", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/papamoa-beach", smName: "Papamoa Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/papamoa/6168a7a5cb771a17201e2362", slName: "Papamoa", sf: "https://www.surf-forecast.com/breaks/Arataki", sfName: "Arataki", port: "Tauranga" },
+    { id: "ohope", name: "Ohope Beach", region: "Ohope", lat: -37.960, lon: 177.040, offshore: 202, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 1.3, ms: "ohope", sm: "https://www.swellmap.com/surfing/new-zealand/ohope-beach", smName: "Ohope Beach", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Ohope-Beach", sfName: "Ohope Beach", port: "Tauranga" },
+    { id: "waihi", name: "Waihi Beach", region: "Coromandel", lat: -37.405, lon: 175.940, offshore: 240, swell: 60, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.0, ms: "waihi" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/waihi-beach", smName: "Waihi Beach", exp: 1.0, port: "Tauranga" },
+    { id: "whangamata", name: "Whangamata", region: "Coromandel", lat: -37.220, lon: 175.880, offshore: 225, swell: 45, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 1.5, ms: "whangamata" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/whangamata", smName: "Whangamata", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Whangamata-Beach", sfName: "Whangamata Beach", port: "Tauranga" },
+    { id: "opoutere", name: "Opoutere", region: "Coromandel", lat: -37.110, lon: 175.890, offshore: 260, swell: 70, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.7, ms: "whangamata", exp: 1.0, port: "Tauranga" },
+    { id: "tairua", name: "Tairua", region: "Coromandel", lat: -37.000, lon: 175.860, offshore: 225, swell: 45, width: 45, lo: 0.7, hi: 2.2, tide: "mid", rising: true, drive: 2.0, ms: "whitianga" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/tairua-beach", smName: "Tairua Beach", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Tairua-Beach", sfName: "Tairua Beach", port: "Tauranga" },
+    { id: "manu", name: "Manu Bay", region: "Raglan", lat: -37.820, lon: 174.810, offshore: 135, swell: 235, width: 40, lo: 1.0, hi: 3.5, tide: "low", rising: false, drive: 2.5, ms: "raglan" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/manu-bay", smName: "Manu Bay", exp: 0.85, sl: "https://www.surfline.com/surf-report/raglan-manu-bay/616899fddc9629291807fafc", slName: "Raglan Manu Bay", sf: "https://www.surf-forecast.com/breaks/Raglan-Manu-Bay", sfName: "Manu Bay", port: "Onehunga" },
+    { id: "ngarunui", name: "Ngarunui (main beach)", region: "Raglan", lat: -37.805, lon: 174.825, offshore: 112, swell: 247, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 2.5, ms: "raglan", exp: 1.0, sl: "https://www.surfline.com/surf-report/raglan/5842041f4e65fad6a7708d7e", slName: "Raglan", sf: "https://www.surf-forecast.com/breaks/Ngarunui-Beach", sfName: "Ngarunui Beach", port: "Onehunga" },
+    { id: "fitzroy", name: "Fitzroy", region: "Taranaki", lat: -39.050, lon: 174.100, offshore: 135, swell: 270, width: 50, lo: 0.8, hi: 2.5, tide: "high", rising: true, drive: 4.6, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/fitzroy-beach", smName: "Fitzroy Beach", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Fitzroy-Beach", sfName: "Fitzroy Beach", port: "Port-Taranaki" },
+    { id: "kumera", name: "Kumera Patch", region: "Taranaki", lat: -39.150, lon: 173.850, offshore: 157, swell: 225, width: 45, lo: 1.0, hi: 3.0, tide: "any", rising: false, drive: 4.9, ms: "newplymouth", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Kumera-Patch", sfName: "Kumera Patch", port: "Port-Taranaki" },
+    { id: "stent", name: "Stent Road", region: "Taranaki", lat: -39.220, lon: 173.780, offshore: 90, swell: 245, width: 50, lo: 1.0, hi: 3.5, tide: "any", rising: false, drive: 5.0, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/stent-road", smName: "Stent Road", exp: 1.0, sl: "https://www.surfline.com/surf-report/stent-road/5842041f4e65fad6a7708d8f", slName: "Stent Road", sf: "https://www.surf-forecast.com/breaks/Stent-Road/forecasts/latest/six_day", sfName: "Stent Road", port: "Port-Taranaki" },
+    { id: "opunake", name: "Opunake", region: "Taranaki", lat: -39.460, lon: 173.860, offshore: 22, swell: 225, width: 50, lo: 0.8, hi: 3.0, tide: "any", rising: false, drive: 5.3, ms: "newplymouth", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/opunake", smName: "Opunake", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Opunake-Beach", sfName: "Opunake Beach", port: "Port-Taranaki" },
+    { id: "midway", name: "Midway (main beach)", region: "Gisborne", lat: -38.683, lon: 178.000, offshore: 0, swell: 200, width: 45, lo: 0.7, hi: 2.4, tide: "any", rising: false, drive: 4.3, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/waikanae-beach", smName: "Waikanae Beach", exp: 0.8, port: "Gisborne" },
+    { id: "wainui", name: "Wainui", region: "Gisborne", lat: -38.690, lon: 178.070, offshore: 300, swell: 75, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 4.4, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/wainui-beach", smName: "Wainui Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/wainui-beach/5842041f4e65fad6a7708d82", slName: "Wainui Beach", port: "Gisborne" },
+    { id: "makorori", name: "Makorori", region: "Gisborne", lat: -38.650, lon: 178.130, offshore: 337, swell: 67, width: 60, lo: 0.8, hi: 2.8, tide: "high", rising: true, drive: 4.5, ms: "gisborne", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Makarori-North", sfName: "Makarori North", port: "Gisborne" },
+    { id: "kaiaua", name: "Kaiaua Bay", region: "East Cape", lat: -38.310, lon: 178.330, offshore: 315, swell: 170, width: 55, lo: 0.8, hi: 2.8, tide: "any", rising: false, drive: 5.0, ms: "gisborne" , sm: "https://www.swellmap.com/surfing/new-zealand/kaiaua", smName: "Kaiaua", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Kaiaua-Bay/forecasts/latest/six_day", sfName: "Kaiaua Bay", port: "Gisborne" },
+    { id: "mahanga", name: "Mahanga", region: "Mahia", lat: -39.030, lon: 177.970, offshore: 270, swell: 90, width: 50, lo: 0.8, hi: 2.5, tide: "any", rising: false, drive: 5.6, ms: "wairoa" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/mahanga-beach", smName: "Mahanga Beach", exp: 1.0, port: "Gisborne" },
+    { id: "opoutama", name: "Opoutama", region: "Mahia", lat: -39.070, lon: 177.860, offshore: 45, swell: 180, width: 45, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 5.5, ms: "wairoa", exp: 0.7, sf: "https://www.surf-forecast.com/breaks/Opoutama-Beach", sfName: "Opoutama Beach", port: "Gisborne" },
+    { id: "blacks", name: "Blacks Reef", region: "Mahia", lat: -39.070, lon: 177.800, offshore: 22, swell: 157, width: 40, lo: 1.0, hi: 3.0, tide: "mid", rising: true, drive: 5.5, ms: "wairoa" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/blacks", smName: "Blacks", exp: 0.85, sf: "https://www.surf-forecast.com/breaks/Blacks-Reef", sfName: "Blacks Reef", port: "Gisborne" }
   ];
 
   /* Starting points. Drive times from Mount Maunganui use the hand-set value for each spot; from anywhere else they are estimated from distance. */
@@ -655,6 +655,56 @@ footer a { color: var(--accent); }
   /* ---------- Model ---------- */
   var model = null;
 
+  /* ---- LINZ tide predictions (official, standard ports), copied into the repo monthly by a GitHub job ---- */
+  var linz = {}; /* port -> sorted [{m: minutes since 1970 local, h: metres, key: "YYYY-MM-DD", time: "HH:MM"}] */
+  function minutesOf(key, hhmm) { var p = key.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2], +hhmm.slice(0, 2), +hhmm.slice(3, 5)) / 60000; }
+  function parseLinz(text) {
+    var out = [];
+    text.split(/\r?\n/).forEach(function (line) {
+      var f = line.split(",");
+      if (f.length < 6 || !/^\d+$/.test(f[0]) || !/^\d{4}$/.test(f[3])) return;
+      var key = f[3] + "-" + (f[2].length < 2 ? "0" : "") + f[2] + "-" + (f[0].length < 2 ? "0" : "") + f[0];
+      for (var i = 4; i + 1 < f.length; i += 2) if (/^\d\d:\d\d$/.test(f[i]) && f[i + 1] !== "") out.push({ m: minutesOf(key, f[i]), h: +f[i + 1], key: key, time: f[i] });
+    });
+    return out;
+  }
+  function loadLinz(years) {
+    var ports = {}; SPOTS_DEFAULT.forEach(function (s) { if (s.port) ports[s.port] = 1; });
+    var jobs = [];
+    Object.keys(ports).forEach(function (port) {
+      years.forEach(function (y) {
+        jobs.push(fetch("tides/" + port + "-" + y + ".csv").then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) { return { port: port, ev: parseLinz(t) }; }).catch(function () { return { port: port, ev: [] }; }));
+      });
+    });
+    return Promise.all(jobs).then(function (res) {
+      var next = {};
+      res.forEach(function (r) { next[r.port] = (next[r.port] || []).concat(r.ev); });
+      Object.keys(next).forEach(function (k) { next[k].sort(function (a, b) { return a.m - b.m; }); if (next[k].length) linz[k] = next[k]; });
+    });
+  }
+  function linzHeight(port, m) {
+    var ev = linz[port]; if (!ev) return null;
+    var lo = 0, hi = ev.length - 1;
+    if (m < ev[0].m || m > ev[hi].m) return null;
+    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (ev[mid].m <= m) lo = mid; else hi = mid; }
+    var a = ev[lo], b = ev[hi], f = (m - a.m) / Math.max(1, b.m - a.m);
+    return a.h + (b.h - a.h) * (1 - Math.cos(Math.PI * f)) / 2;
+  }
+  function applyLinz(mdl) {
+    SPOTS_DEFAULT.forEach(function (s) {
+      if (!s.port || !linz[s.port] || !mdl.spots[s.id]) return;
+      mdl.spots[s.id].forEach(function (dd, di) {
+        var key = mdl.days[di].key, tides = [];
+        for (var h = 0; h < 24; h++) tides.push(linzHeight(s.port, minutesOf(key, (h < 10 ? "0" : "") + h + ":00")));
+        if (tides.every(function (v) { return v === null; })) return;
+        dd.tides = tides;
+        dd.tideEvents = linz[s.port].filter(function (e) { return e.key === key; });
+        dd.tidePort = s.port.replace("-", " ");
+      });
+    });
+    return mdl;
+  }
+
   function buildModel(raw) {
     var anyW = null;
     Object.keys(raw.spots).forEach(function (k) { if (!anyW && raw.spots[k].w && raw.spots[k].w.daily) anyW = raw.spots[k].w; });
@@ -707,7 +757,7 @@ footer a { color: var(--accent); }
       });
       spots[base.id] = perDay;
     });
-    return { days: days, spots: spots, fetchedAt: raw.fetchedAt };
+    return applyLinz({ days: days, spots: spots, fetchedAt: raw.fetchedAt });
   }
 
   function tideInfo(tides, h) {
@@ -941,7 +991,14 @@ footer a { color: var(--accent); }
       home: Object.assign({ enabled: !!c.home.enabled, spot: c.home.spot, daysAhead: +c.home.daysAhead }, win(c.home))
     };
   }
+  function hm12(hhmm) { var h = +hhmm.slice(0, 2), m = hhmm.slice(3, 5); return (h % 12 || 12) + ":" + m + (h < 12 ? "am" : "pm"); }
   function tideTimes(dd) {
+    if (dd.tideEvents && dd.tideEvents.length) {
+      return dd.tideEvents.map(function (e, i, arr) {
+        var nb = arr[i + 1] || arr[i - 1], hi = nb ? e.h > nb.h : e.h > 1;
+        return (hi ? "high " : "low ") + hm12(e.time) + " (" + e.h.toFixed(1) + " m)";
+      });
+    }
     var out = [];
     for (var h = 1; h < 23; h++) {
       var a = dd.tides[h - 1], b = dd.tides[h], c = dd.tides[h + 1];
@@ -1025,15 +1082,23 @@ footer a { color: var(--accent); }
     }
     var vals = dd.tides.filter(function (v) { return v !== null; });
     var tlo = vals.length ? Math.min.apply(null, vals) : 0, thi = vals.length ? Math.max.apply(null, vals) : 1;
-    var tideGauge = cur === null || cur === undefined ? "" : arcGauge(cur, tlo, thi, ["var(--rain)", "var(--rain)", "var(--rain)", "var(--rain)"], (cur >= 0 ? "+" : "") + cur.toFixed(2), "M vs MEAN", "Tide now");
+    var useLinz = !!dd.tideEvents;
+    if (useLinz) {
+      var nowKey = model.days[0].key, nowMin = minutesOf(nowKey, new Date().toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }));
+      cur = linzHeight(s.port, nowMin); nxt = linzHeight(s.port, nowMin + 20);
+      var evs = linz[s.port].filter(function (e) { return e.m > nowMin; }).slice(0, 3);
+      turns = evs.map(function (e, i) { var other = evs[i + 1] || evs[i - 1]; return { hi: other ? e.h > other.h : true, label: (e.key !== nowKey ? "Tmrw " : "") + hm12(e.time), v: e.h }; });
+    }
+    var tideGauge = cur === null || cur === undefined ? "" : arcGauge(cur, tlo, thi, ["var(--rain)", "var(--rain)", "var(--rain)", "var(--rain)"], cur.toFixed(2), useLinz ? "METRES" : "M vs MEAN", "Tide now");
     var state = cur === null || nxt === null || nxt === undefined ? "" : nxt > cur ? "Incoming" : "Outgoing";
     var tideBox = '<div class="tide-box"><div style="display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:center"><div>' + tideGauge + '</div><div><div class="state" style="color:var(--rain)">' + esc(state) + "</div>" +
-      turns.map(function (t) { var dayW = t.h >= 24 ? "Tmrw " : ""; return '<div class="row">' + (t.hi ? "↑ High " : "↓ Low ") + esc(dayW + clock(t.h % 24)) + ' <span class="hint">(' + (t.v >= 0 ? "+" : "") + t.v.toFixed(2) + " m)</span></div>"; }).join("") + "</div></div></div>";
+      turns.map(function (t) { var lab = t.label || ((t.h >= 24 ? "Tmrw " : "") + clock(t.h % 24)); return '<div class="row">' + (t.hi ? "↑ High " : "↓ Low ") + esc(lab) + ' <span class="hint">(' + t.v.toFixed(2) + " m)</span></div>"; }).join("") +
+      (useLinz ? '<div class="hint" style="font-size:11px">LINZ · ' + esc(dd.tidePort) + "</div>" : "") + "</div></div></div>";
     var sunBox = '<div class="sun-box"><div class="row">☀︎ Sunrise <b style="float:right">' + esc(hhmm(dd.wx.sunrise)) + '</b></div><div class="row">☾ Sunset <b style="float:right">' + esc(hhmm(dd.wx.sunset)) + "</b></div>" +
       '<div class="row">Water <b style="float:right">' + (c.sst !== null && c.sst !== undefined ? c.sst.toFixed(1) + "°C" : "–") + '</b></div><div class="row">Air <b style="float:right">' + (c.air !== null && c.air !== undefined ? c.air.toFixed(1) + "°C" : "–") + "</b></div></div>";
     el.innerHTML = '<div class="now-title"><h3>Right now' + (isTauranga ? " · Tauranga" : "") + '</h3><span class="label">' + esc(clock(nowH)) + " · model forecast</span></div>" + map + gauges +
       '<div class="now-bottom">' + tideBox + sunBox + "</div>" +
-      '<div class="now-foot">Tap the wind or the wave dials for the next 6 to 36 hours. Forecast for this hour from Open-Meteo, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide is relative to mean sea level.' +
+      '<div class="now-foot">Tap the wind or the wave dials for the next 6 to 36 hours. Forecast for this hour from Open-Meteo, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide times and heights are LINZ official predictions for the nearest standard port, heights above chart datum like a tide table.' +
       (isTauranga ? ' For live harbour readings see <a href="https://www.port-tauranga.co.nz/operations/harbour-conditions/" target="_blank" rel="noopener">Port of Tauranga harbour conditions ↗</a>.' : "") + "</div>";
   }
 
@@ -1774,7 +1839,11 @@ footer a { color: var(--accent); }
     el.textContent = msg; el.hidden = false;
   }
 
+  var linzReady = (function () { var y = +new Date().toLocaleDateString("en-CA", { timeZone: TZ }).slice(0, 4); return loadLinz([y, y + 1]); })();
   function loadForecast(force) {
+    linzReady.then(function () { loadForecastInner(force); }, function () { loadForecastInner(force); });
+  }
+  function loadForecastInner(force) {
     var cached = load(CACHE_KEY);
     if (!force && cached && Date.now() - cached.fetchedAt < CACHE_MAX_AGE) {
       try { model = buildModel(cached); setFresh(); renderAll(true); return; } catch (e) {}
