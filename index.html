@@ -182,6 +182,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .about p, .about ul { margin: 0; font-size: 15px; }
 .about ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .about a { color: var(--accent); }
+.spot-pick { font: inherit; color: inherit; letter-spacing: inherit; background: transparent; border: 0; border-bottom: 1.5px dashed var(--accent); border-radius: 0; padding: 0 26px 2px 0; margin: 0; max-width: 100%; cursor: pointer; -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23a3683f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 2px center; background-size: 18px; }
+.spot-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .now-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
 .now-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; font-family: var(--font-data); font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
 .now-top b { color: var(--fg); font-weight: 500; }
@@ -306,7 +309,7 @@ footer a { color: var(--accent); }
   </section>
 
   <section class="stack" aria-labelledby="hw-h" data-page="home" hidden>
-    <div><div class="label">Your home spot · next 7 days</div><h2 id="hw-h" style="font-size:24px">–</h2><p class="hint" id="hw-sub"></p></div>
+    <div><div class="label">Your home spot · next 7 days</div><h2 id="hw-h" style="font-size:24px;margin:2px 0 0"><select id="hw-spot" class="spot-pick" aria-label="Home spot"></select></h2><p class="hint" id="hw-sub"></p></div>
     <button class="btn primary-btn log-cta" type="button" id="log-open">How was your surf? Log a session</button>
     <div class="cond" id="hw-cond"></div>
     <div class="now-card" id="now-card"></div>
@@ -464,14 +467,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 62 · Tay St 2-3 ft calibration</span>
+    <span>App version 63 · pick home spot on Home</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 62;
+  var APP_VERSION = 63;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1112,6 +1115,8 @@ footer a { color: var(--accent); }
     if (!model.days[0] || model.days[0].dow !== "Today" || c.ws === null) { el.innerHTML = ""; el.hidden = true; return; }
     el.hidden = false;
     var isTauranga = s.region === "Mount Maunganui";
+    /* The Right now card (harbour-style wind and tide gauges) is only for the Mount spots */
+    if (!isTauranga) { el.innerHTML = ""; el.hidden = true; return; }
     var kind = windKind(s, c);
     var wcol = kind === "offshore" ? "var(--wind-off)" : kind === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
     /* map with wind badge and arrow */
@@ -1418,8 +1423,10 @@ footer a { color: var(--accent); }
       for (var h = 6; h <= 10; h++) { var c = dd.hour(h); if (c.ws === null) continue; mornCount++; var k = windKind(s, c); if (k === "offshore" || k === "light") morning++; }
       stats.push({ d: d, best: best, maxFt: maxFt, good: goodWindow(s, d, alertCfg.home), wx: dd.wx, morningOff: mornCount && morning / mornCount >= 0.6, tides: tideTimes(dd) });
     }
-    document.getElementById("hw-h").textContent = s.name;
-    document.getElementById("hw-sub").innerHTML = esc(s.region + " · offshore " + compass(s.offshore) + " · best on " + compass(s.swell) + " swell") + ' · <a href="#settings" style="color:var(--accent)">change home spot</a>';
+    document.getElementById("hw-spot").innerHTML = REGIONS.map(function (r) {
+      return '<optgroup label="' + esc(r) + '">' + allSpots().filter(function (x) { return x.region === r; }).map(function (x) { return '<option value="' + x.id + '"' + (x.id === s.id ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</optgroup>";
+    }).join("");
+    document.getElementById("hw-sub").textContent = s.region + " · offshore " + compass(s.offshore) + " · best on " + compass(s.swell) + " swell · tap the name to change spot";
     /* Analysis */
     var withData = stats.filter(function (x) { return x.best; });
     var html = "";
@@ -2045,6 +2052,11 @@ footer a { color: var(--accent); }
     }, { timeout: 10000, maximumAge: 600000 });
   });
 
+  document.getElementById("hw-spot").addEventListener("change", function (e) {
+    alertCfg.home.spot = e.target.value; homeSel = null;
+    store(ALERT_KEY, alertCfg);
+    renderAlertForm(); if (model) { renderHome(); renderHomeTab(); renderRuns(); }
+  });
   document.getElementById("notif-form").addEventListener("change", function (e) {
     var el = e.target;
     if (el.hasAttribute("data-region-alert")) {
