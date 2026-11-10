@@ -264,7 +264,6 @@ footer a { color: var(--accent); }
 <div class="wrap">
   <header>
     <div class="brand"><img class="logo" src="logo.svg" alt="" width="44" height="44"><div><div class="label" id="from-label">Surf trip planner</div><h1>Days <span class="off">Offshore</span></h1></div></div>
-    <p class="sub">Pick your days off. See which region has the best surf and weather, then check the swell, wind and tide chart for each spot.</p>
   </header>
   <svg class="wave-rule" viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 Q 12.5 0 25 5 T 50 5 T 75 5 T 100 5 T 125 5 T 150 5 T 175 5 T 200 5 T 225 5 T 250 5 T 275 5 T 300 5 T 325 5 T 350 5 T 375 5 T 400 5" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
   <nav class="tabs-nav layout-bottom" role="tablist" aria-label="Pages">
@@ -404,6 +403,7 @@ footer a { color: var(--accent); }
 
   <section class="stack about" aria-labelledby="about-h" data-page="about" hidden>
     <h2 id="about-h" style="font-size:24px">About Days Offshore</h2>
+    <p class="sub" style="margin:0 0 4px;font-size:16px">Pick your days off. See which region has the best surf and weather, then check the swell, wind and tide chart for each spot.</p>
     <p>Days Offshore helps you plan surf trips around your days off. Pick the days you're free and it ranks each region by how good the waves look, shows the best spot each day, and gives you a full swell, wind, tide and weather forecast for every spot.</p>
 
     <h3>Where the forecast comes from</h3>
@@ -458,14 +458,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 56 · scissor lift cams link</span>
+    <span>App version 57 · tagline moved to About</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 56;
+  var APP_VERSION = 57;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
