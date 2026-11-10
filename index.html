@@ -138,6 +138,12 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .notif-group h3 { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .notif-group .form { margin-top: 8px; }
 .notif-group.off .form { opacity: 0.45; pointer-events: none; }
+.tabs-nav { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.tab { flex: 1 1 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-radius: 9px; padding: 9px 6px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--surface); }
+.tab-count { font-family: var(--font-data); font-size: 11px; font-weight: 500; background: var(--score-good); color: var(--surface); border-radius: 999px; padding: 0 7px; line-height: 18px; }
+.tab-count:empty { display: none; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -164,6 +170,11 @@ footer a { color: var(--accent); }
     <p class="sub">Pick your days off. See which region has the best surf and weather, then check the swell, wind and tide chart for each spot.</p>
   </header>
   <svg class="wave-rule" viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 Q 12.5 0 25 5 T 50 5 T 75 5 T 100 5 T 125 5 T 150 5 T 175 5 T 200 5 T 225 5 T 250 5 T 275 5 T 300 5 T 325 5 T 350 5 T 375 5 T 400 5" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
+  <nav class="tabs-nav" role="tablist" aria-label="Pages">
+    <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="true">Plan a trip</button>
+    <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Good runs <span class="tab-count" id="runs-count"></span></button>
+    <button type="button" role="tab" class="tab" data-tab="settings" aria-selected="false">Settings</button>
+  </nav>
 
   <div class="status">
     <span class="hint" id="fresh">Loading forecast…</span>
@@ -171,38 +182,38 @@ footer a { color: var(--accent); }
   </div>
   <div class="note" id="error" hidden></div>
 
-  <section class="origin" aria-label="Starting point">
+  <section class="origin" aria-label="Starting point" data-page="plan">
     <label class="label" for="origin">Starting from</label>
     <div class="origin-row"><select id="origin"></select><button class="btn" type="button" id="use-loc">Use my location</button></div>
     <span class="hint" id="origin-note"></span>
   </section>
 
-  <section class="stack" aria-labelledby="off-h">
+  <section class="stack" aria-labelledby="off-h" data-page="plan">
     <h2 id="off-h">Your days off</h2>
     <p class="hint" id="pick-hint">Tap your first day off, then your last.</p>
     <div class="scroll"><div class="strip" id="strip" role="group" aria-label="Days off"></div></div>
     <div class="range-line"><strong id="range-text"></strong><span class="label" id="range-len"></span></div>
   </section>
 
-  <section class="stack" aria-labelledby="home-h" id="home-sec">
+  <section class="stack" aria-labelledby="home-h" id="home-sec" data-page="plan">
     <h2 id="home-h">Home spot</h2>
     <div class="runs" id="home-card"></div>
   </section>
 
-  <section class="stack" aria-labelledby="runs-h">
+  <section class="stack" aria-labelledby="runs-h" data-page="runs" hidden>
     <h2 id="runs-h">Good runs coming up</h2>
     <p class="hint" id="runs-rule"></p>
     <div class="runs" id="runs"></div>
   </section>
 
-  <section class="stack" aria-labelledby="trip-h" aria-live="polite">
+  <section class="stack" aria-labelledby="trip-h" aria-live="polite" data-page="plan">
     <h2 id="trip-h">Best trip for these days</h2>
     <div id="best"><div class="loading">Fetching swell and weather for all your spots…</div></div>
     <div class="rank" id="rank"></div>
     <p class="hint">Regions are ranked on waves: the average of the best session score each day at that region's best spot. The weather score is shown separately and doesn't change the ranking. Tap a region to see its spots.</p>
   </section>
 
-  <section class="stack" aria-labelledby="spot-h" id="spot-section">
+  <section class="stack" aria-labelledby="spot-h" id="spot-section" data-page="plan">
     <h2 id="spot-h">Spot forecast</h2>
     <div class="tabs" id="tabs" role="group" aria-label="Spots"></div>
     <div class="cond" id="cond"></div>
@@ -228,9 +239,9 @@ footer a { color: var(--accent); }
     </details>
   </section>
 
-  <section class="stack" aria-labelledby="set-h" id="settings-sec">
+  <section class="stack" aria-labelledby="set-h" id="settings-sec" data-page="settings" hidden>
     <h2 id="set-h">Settings</h2>
-    <details class="settings" id="notif-settings">
+    <details class="settings" id="notif-settings" open>
       <summary>Notifications</summary>
       <p class="hint" style="margin-top:8px">Each morning at about 6:40am you get one GitHub notification for anything new below. These settings also decide what shows under Good runs and Home spot.</p>
       <div id="notif-form"></div>
@@ -243,14 +254,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 29 · settings with trip and home spot notifications</span>
+    <span>App version 30 · Good runs and Settings on their own tabs</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 29;
+  var APP_VERSION = 30;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -735,6 +746,7 @@ footer a { color: var(--accent); }
 
   function renderRuns() {
     var runs = goodRuns(), el = document.getElementById("runs");
+    document.getElementById("runs-count").textContent = runs.length ? runs.length : "";
     if (!runs.length) { el.innerHTML = '<p class="hint">No runs of ' + alertCfg.trips.minDays + ' or more good days in the forecast right now.</p>'; return; }
     el.innerHTML = runs.map(function (r) {
       var a = model.days[r.days[0].d], b = model.days[r.days[r.days.length - 1].d];
@@ -1199,6 +1211,7 @@ footer a { color: var(--accent); }
     }
     if (t.hasAttribute("data-run")) {
       var rr = t.getAttribute("data-run").split(",");
+      history.replaceState(null, "", location.pathname + location.search); showPage("plan", true);
       state.start = +rr[0]; state.end = +rr[1]; state.picking = "start";
       renderStrip(); renderTrips(); chooseRegion(t.getAttribute("data-run-region")); renderTrips(); renderSpot();
       try { document.getElementById("trip-h").scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
@@ -1291,6 +1304,22 @@ footer a { color: var(--accent); }
   }).catch(function () {});
 
   renderAlertForm();
+  var PAGES = ["plan", "runs", "settings"];
+  function showPage(name, noScroll) {
+    if (PAGES.indexOf(name) < 0) name = "plan";
+    document.querySelectorAll("[data-page]").forEach(function (el) { el.hidden = el.getAttribute("data-page") !== name; });
+    document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-selected", b.getAttribute("data-tab") === name ? "true" : "false"); });
+    if (!noScroll) { try { window.scrollTo({ top: 0 }); } catch (e) {} }
+  }
+  document.querySelector(".tabs-nav").addEventListener("click", function (e) {
+    var b = e.target.closest(".tab"); if (!b) return;
+    var name = b.getAttribute("data-tab");
+    if (location.hash !== "#" + name) { if (name === "plan") history.replaceState(null, "", location.pathname + location.search); else location.hash = name; }
+    showPage(name);
+  });
+  window.addEventListener("hashchange", function () { showPage(location.hash.slice(1)); });
+  showPage(location.hash.slice(1), true);
+
   renderOrigin();
   loadForecast(false);
 })();
