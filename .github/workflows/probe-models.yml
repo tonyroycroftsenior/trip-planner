@@ -1,0 +1,11 @@
+name: Probe wave models
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for m in meteofrance_wave ecmwf_wam ecmwf_wam025 ncep_gfswave025 ncep_gfswave016 gwam dwd_gwam; do
+            echo "== $m"; curl -s "https://marine-api.open-meteo.com/v1/marine?latitude=-37.60&longitude=176.22&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height&models=$m&forecast_days=1&timezone=Pacific%2FAuckland" | head -c 500; echo
+          done
+          echo "== multi"; curl -s "https://marine-api.open-meteo.com/v1/marine?latitude=-37.60,-38.75&longitude=176.22,178.12&hourly=wave_height,swell_wave_height&models=meteofrance_wave,ecmwf_wam,ncep_gfswave025&forecast_days=1&timezone=Pacific%2FAuckland" | python3 -c "import sys,json;d=json.load(sys.stdin);d=d if isinstance(d,list) else [d];[print(sorted(x.get('hourly',{}).keys()), x.get('hourly',{}).get('wave_height_meteofrance_wave',[None])[:3], x.get('hourly',{}).get('wave_height_ecmwf_wam',[None])[:3], x.get('hourly',{}).get('wave_height_ncep_gfswave025',[None])[:3]) for x in d]" || true
