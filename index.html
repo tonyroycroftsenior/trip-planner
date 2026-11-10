@@ -464,14 +464,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 61 · fresh forecast after size fix</span>
+    <span>App version 62 · Tay St 2-3 ft calibration</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 61;
+  var APP_VERSION = 62;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1537,8 +1537,8 @@ footer a { color: var(--accent); }
     var perF = clamp(0.37 + (T - 6) * 0.17, 0.3, 1.6);
     return h * 3.28 * perF * dirF;
   }
-  /* Overall size calibration against Surfline at Tay Street: 1-3 ft on 10 Nov 2026 and 2-3 ft on the morning of 11 Nov 2026 */
-  var SIZE_CAL = 1.55;
+  /* Overall size calibration against Surfline at Tay Street: 1-3 ft on 10 Nov 2026 and 2-3 ft all day on 11 Nov 2026 */
+  var SIZE_CAL = 1.4;
   function surfFt(s, c) {
     var sw = trainFt(c.sh, c.sp, c.sd, s);
     var ww = c.wwh !== null && c.wwh !== undefined ? trainFt(c.wwh, c.wwp, c.wwd, s) : 0;
