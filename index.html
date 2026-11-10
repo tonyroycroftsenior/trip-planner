@@ -138,8 +138,8 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .notif-group h3 { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .notif-group .form { margin-top: 8px; }
 .notif-group.off .form { opacity: 0.45; pointer-events: none; }
-.tabs-nav { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
-.tab { flex: 1 1 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-radius: 9px; padding: 9px 6px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.tabs-nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.tab { flex: 1 0 auto; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-radius: 9px; padding: 9px 10px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--surface); }
 .tab-count { font-family: var(--font-data); font-size: 11px; font-weight: 500; background: var(--score-good); color: var(--surface); border-radius: 999px; padding: 0 7px; line-height: 18px; }
 .tab-count:empty { display: none; }
@@ -208,6 +208,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .slegend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
 .slegend i { display: inline-block; width: 16px; height: 0; border-top: 3px solid; margin-right: 6px; vertical-align: 3px; }
 .now-card .tap { cursor: pointer; }
+.primary-btn { background: var(--accent); color: var(--surface) !important; border-color: var(--accent); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; }
+.crew-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.crew-row .who b { display: block; font-weight: 600; }
+.crew-row .who span { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.crew-row button { font: inherit; font-size: 12px; color: var(--wind-on); background: none; border: 0; cursor: pointer; padding: 4px; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -238,6 +243,7 @@ footer a { color: var(--accent); }
     <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="true">Plan</button>
     <button type="button" role="tab" class="tab" data-tab="home" aria-selected="false">Home</button>
     <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Runs</button>
+    <button type="button" role="tab" class="tab" data-tab="crew" aria-selected="false">Crew</button>
     <button type="button" role="tab" class="tab" data-tab="settings" aria-selected="false">Settings</button>
     <button type="button" role="tab" class="tab" data-tab="about" aria-selected="false">About</button>
   </nav>
@@ -318,6 +324,38 @@ footer a { color: var(--accent); }
     </details>
   </section>
 
+  <section class="stack" aria-labelledby="crew-h" data-page="crew" hidden>
+    <div><h2 id="crew-h" style="font-size:24px">Crew</h2><p class="hint">Let your mates know where you're surfing. Your crew list is saved only on this phone.</p></div>
+
+    <div class="sbox">
+      <div class="label">I'm going surfing</div>
+      <div class="form" style="margin-top:0">
+        <label for="go-spot">Spot<select id="go-spot"></select></label>
+        <label for="go-day">Day<select id="go-day"></select></label>
+        <label for="go-time">Time<input id="go-time" type="time" step="900" style="font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:100%"></label>
+      </div>
+      <label for="go-note" style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)">Add a note (optional)<input id="go-note" type="text" maxlength="120" placeholder="e.g. meet at the car park" style="font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></label>
+      <div class="label" style="margin-top:4px">Message</div>
+      <div id="go-preview" style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px;white-space:pre-wrap"></div>
+      <div class="form-actions" style="margin-top:0">
+        <a class="btn primary-btn" id="go-text" href="#">Text my crew</a>
+        <button class="btn" type="button" id="go-share">Share…</button>
+        <button class="btn" type="button" id="go-copy">Copy</button>
+      </div>
+      <p class="hint" id="go-note-hint"></p>
+    </div>
+
+    <div class="sbox">
+      <div class="label">Your crew</div>
+      <div id="crew-list"></div>
+      <div class="form" style="margin-top:0">
+        <label for="crew-name">Name<input id="crew-name" type="text" autocomplete="off" style="font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></label>
+        <label for="crew-phone">Mobile number<input id="crew-phone" type="tel" autocomplete="off" placeholder="021 123 4567" style="font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></label>
+      </div>
+      <div class="form-actions" style="margin-top:0"><button class="btn" type="button" id="crew-add">Add to crew</button><span class="hint" id="crew-msg"></span></div>
+    </div>
+  </section>
+
   <section class="stack" aria-labelledby="set-h" id="settings-sec" data-page="settings" hidden>
     <h2 id="set-h">Settings</h2>
     <details class="settings" id="notif-settings" open>
@@ -382,14 +420,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 42 · hour-by-hour tables</span>
+    <span>App version 44 · Crew tab</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 42;
+  var APP_VERSION = 44;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1397,7 +1435,8 @@ footer a { color: var(--accent); }
       '<a href="' + esc(slUrl) + '" target="_blank" rel="noopener">' + (s.slName ? "Surfline · " + esc(s.slName) : "Surfline · " + esc(s.region) + " spots") + " ↗</a>" +
       '<a href="' + esc(windySwell) + '" target="_blank" rel="noopener">Windy swell ↗</a>' +
       '<a href="' + esc(windyWind) + '" target="_blank" rel="noopener">Windy wind ↗</a>' +
-      '<a href="' + esc(ms.url) + '" target="_blank" rel="noopener">' + esc(ms.label) + " ↗</a>";
+      '<a href="' + esc(ms.url) + '" target="_blank" rel="noopener">' + esc(ms.label) + " ↗</a>" +
+      '<a href="#crew" data-crew-spot="' + s.id + '">Tell my crew</a>';
   }
   function renderChart() {
     var s = spotById(state.spot);
@@ -1540,6 +1579,7 @@ footer a { color: var(--accent); }
 
   function renderAll(resetRegion) {
     renderStrip();
+    if (typeof renderGo === "function") { try { renderGo(); } catch (e) {} }
     renderHome();
     renderHomeTab();
     renderRuns();
@@ -1588,6 +1628,8 @@ footer a { color: var(--accent); }
 
   /* ---------- Events ---------- */
   document.addEventListener("click", function (e) {
+    var cs = e.target.closest && e.target.closest("[data-crew-spot]");
+    if (cs) { e.preventDefault(); openCrewFor(cs.getAttribute("data-crew-spot")); return; }
     var t = e.target.closest("button");
     if (!t || !model) {
       if (t && t.id === "refresh") loadForecast(true);
@@ -1712,7 +1754,94 @@ footer a { color: var(--accent); }
   }).catch(function () {});
 
   renderAlertForm();
-  var PAGES = ["plan", "home", "runs", "settings", "about"];
+  /* ---- Crew: friends list kept on this phone, one-tap group text ---- */
+  var CREW_KEY = "surf-trip-crew-v1";
+  var crew = load(CREW_KEY) || [];
+  function saveCrew() { store(CREW_KEY, crew); }
+  function cleanPhone(p) { return String(p).replace(/[^\d+]/g, ""); }
+  function renderCrewList() {
+    var el = document.getElementById("crew-list");
+    if (!crew.length) { el.innerHTML = '<p class="hint">No one yet. Add your mates below.</p>'; return; }
+    el.innerHTML = crew.map(function (f, i) {
+      return '<div class="crew-row"><input type="checkbox" id="crew-on-' + i + '" data-crew-on="' + i + '"' + (f.on ? " checked" : "") + ' aria-label="Include ' + esc(f.name) + '"><label class="who" for="crew-on-' + i + '"><b>' + esc(f.name) + "</b><span>" + esc(f.phone) + '</span></label><button type="button" data-crew-del="' + i + '">Remove</button></div>';
+    }).join("");
+  }
+  function fillGoForm() {
+    var spotSel = document.getElementById("go-spot"), daySel = document.getElementById("go-day"), timeIn = document.getElementById("go-time");
+    if (!spotSel.options.length) {
+      spotSel.innerHTML = REGIONS.map(function (r) { return '<optgroup label="' + esc(r) + '">' + allSpots().filter(function (s) { return s.region === r; }).map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + "</option>"; }).join("") + "</optgroup>"; }).join("");
+      spotSel.value = alertCfg.home.spot;
+      var nowH = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
+      timeIn.value = (nowH + 1 < 10 ? "0" : "") + Math.min(23, nowH + 1) + ":00";
+    }
+    if (model && !daySel.options.length) daySel.innerHTML = model.days.slice(0, 7).map(function (d, i) { return '<option value="' + i + '">' + esc(i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.full) + "</option>"; }).join("");
+  }
+  function goMessage() {
+    var sid = document.getElementById("go-spot").value, s = spotById(sid);
+    var d = +document.getElementById("go-day").value || 0, tv = document.getElementById("go-time").value || "09:00";
+    var hh = +tv.slice(0, 2), mm = tv.slice(3, 5);
+    var timeTxt = (hh % 12 || 12) + (mm !== "00" ? ":" + mm : "") + (hh < 12 ? "am" : "pm");
+    var dayTxt = d === 0 ? "today" : d === 1 ? "tomorrow" : model ? "on " + model.days[d].wk + " " + model.days[d].d + " " + model.days[d].m : "";
+    var msg = "Going surfing at " + s.name + " " + dayTxt + " around " + timeTxt + ".";
+    if (model && model.spots[sid] && model.spots[sid][d]) {
+      var c = model.spots[sid][d].hour(hh), k = windKind(s, c);
+      var ft = surfFt(s, c), parts = [];
+      if ((c.sh !== null || c.wh !== null) && ft >= 0.4) parts.push(ftRange(ft));
+      if (c.ws !== null) parts.push(Math.round(c.ws) + " kts " + compass(c.wdir) + ({ offshore: " offshore", onshore: " onshore", cross: " cross-shore", light: ", light" }[k] || ""));
+      if (parts.length) msg += " Forecast: " + parts.join(", ") + ".";
+    }
+    var note = document.getElementById("go-note").value.trim();
+    if (note) msg += " " + note.charAt(0).toUpperCase() + note.slice(1) + (/[.!?]$/.test(note) ? "" : ".");
+    msg += " Keen?";
+    return msg;
+  }
+  function renderGo() {
+    fillGoForm();
+    var msg = goMessage(), nums = crew.filter(function (f) { return f.on; }).map(function (f) { return cleanPhone(f.phone); });
+    document.getElementById("go-preview").textContent = msg;
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    var href = ios ? "sms:/open?addresses=" + nums.join(",") + "&body=" + encodeURIComponent(msg) : "sms:" + nums.join(",") + "?body=" + encodeURIComponent(msg);
+    var a = document.getElementById("go-text");
+    a.href = href;
+    a.textContent = nums.length ? "Text my crew (" + nums.length + ")" : "Text…";
+    document.getElementById("go-note-hint").textContent = nums.length ? "Opens your Messages app with the text ready to send as a group message. You just tap send." : "Add mates below and tick who to include, or use Share to send to a WhatsApp or Messenger group.";
+  }
+  ["go-spot", "go-day", "go-time", "go-note"].forEach(function (id) { document.getElementById(id).addEventListener("input", renderGo); document.getElementById(id).addEventListener("change", renderGo); });
+  document.getElementById("go-share").addEventListener("click", function () {
+    var msg = goMessage();
+    if (navigator.share) navigator.share({ text: msg }).catch(function () {});
+    else document.getElementById("go-note-hint").textContent = "Sharing isn't available in this browser. Use Copy instead.";
+  });
+  document.getElementById("go-copy").addEventListener("click", function () {
+    var msg = goMessage(), hint = document.getElementById("go-note-hint");
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(function () { hint.textContent = "Copied. Paste it into any chat."; }, function () { hint.textContent = "Couldn't copy. Select the message above and copy it."; });
+  });
+  document.getElementById("crew-add").addEventListener("click", function () {
+    var n = document.getElementById("crew-name"), ph = document.getElementById("crew-phone"), msg = document.getElementById("crew-msg");
+    var name = n.value.trim(), phone = ph.value.trim();
+    if (!name || cleanPhone(phone).replace("+", "").length < 7) { msg.textContent = "Add a name and a mobile number."; return; }
+    crew.push({ name: name, phone: phone, on: true }); saveCrew();
+    n.value = ""; ph.value = ""; msg.textContent = name + " added.";
+    renderCrewList(); renderGo();
+  });
+  document.getElementById("crew-list").addEventListener("change", function (e) {
+    var i = e.target.getAttribute("data-crew-on"); if (i === null) return;
+    crew[+i].on = e.target.checked; saveCrew(); renderGo();
+  });
+  document.getElementById("crew-list").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-crew-del]"); if (!b) return;
+    crew.splice(+b.getAttribute("data-crew-del"), 1); saveCrew(); renderCrewList(); renderGo();
+  });
+  function openCrewFor(sid, d, h) {
+    fillGoForm();
+    document.getElementById("go-spot").value = sid;
+    if (d !== undefined) document.getElementById("go-day").value = String(d);
+    if (h !== undefined) document.getElementById("go-time").value = (h < 10 ? "0" : "") + h + ":00";
+    location.hash = "crew"; renderGo();
+  }
+  renderCrewList();
+
+  var PAGES = ["plan", "home", "runs", "crew", "settings", "about"];
   function showPage(name, noScroll) {
     if (PAGES.indexOf(name) < 0) name = "plan";
     document.querySelectorAll("[data-page]").forEach(function (el) { el.hidden = el.getAttribute("data-page") !== name; });
