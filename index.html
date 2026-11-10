@@ -188,6 +188,22 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tide-box .row, .sun-box .row { font-size: 13px; }
 .now-foot { padding: 0 14px 12px; font-size: 12px; color: var(--muted); }
 .now-foot a { color: var(--accent); }
+.sheet-back { position: fixed; inset: 0; z-index: 20; background: rgba(40, 32, 24, 0.45); display: flex; align-items: flex-end; justify-content: center; padding: env(safe-area-inset-top, 0px) 0 0; }
+.sheet { background: var(--bg); width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 14px max(16px, env(safe-area-inset-left, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 12px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sheet-head h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+.sbox { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.sbox .shead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.strow { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); gap: 6px; align-items: baseline; border-top: 1px solid var(--line); padding-top: 8px; }
+.strow .k { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 500; }
+.strow .v { font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+.strow .v small { display: block; font-family: var(--font-data); font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0.05em; }
+.range-btns { display: flex; gap: 6px; }
+.range-btns button { font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 8px; padding: 6px 12px; }
+.range-btns button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.slegend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.slegend i { display: inline-block; width: 16px; height: 0; border-top: 3px solid; margin-right: 6px; vertical-align: 3px; }
+.now-card .tap { cursor: pointer; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -351,18 +367,25 @@ footer a { color: var(--accent); }
     <p>Forecast data by Open-Meteo. Map data © OpenStreetMap contributors. Swellmap, Surfline, Windy and MetService links open their own sites; Days Offshore isn't connected to them.</p>
   </section>
 
+  <div class="sheet-back" id="sheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <div class="sheet-head"><h3 id="sheet-title"></h3><button class="btn" type="button" id="sheet-close" aria-label="Close">Close</button></div>
+      <div id="sheet-body"></div>
+    </div>
+  </div>
+
   <footer>
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 40 · Right now card on Home</span>
+    <span>App version 41 · wave and wind detail sheets</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 40;
+  var APP_VERSION = 41;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -902,13 +925,13 @@ footer a { color: var(--accent); }
     var kindWord = { offshore: "Offshore", onshore: "Onshore", cross: "Cross-shore", light: "Light" }[kind] || "";
     var map = '<div class="now-map"><div class="tiles" style="left:50%;top:50%;width:' + W + "px;height:" + H + 'px;transform:translate(-50%,-50%)">' + pj.tiles + "</div>" + overlay +
       '<div class="wind-tag"><b>' + esc(s.name) + '</b><span style="color:' + wcol + ';font-weight:600">' + esc(kindWord) + "</span> · " + esc(clock(nowH)) + "</div>" +
-      '<div class="wind-badge" style="left:' + badgeLeft + ";top:" + badgeTop + ";--wb:" + wcol + '"><span class="dir">' + esc(compass(c.wdir)) + '</span><span class="spd">' + Math.round(c.ws) + "/" + (c.gust !== null ? Math.round(c.gust) : "–") + '</span><span class="deg">' + Math.round(c.wdir) + "° · kts</span></div>" +
+      '<div class="wind-badge tap" role="button" tabindex="0" data-sheet="wind" data-sid="' + s.id + '" style="left:' + badgeLeft + ";top:" + badgeTop + ";--wb:" + wcol + '"><span class="dir">' + esc(compass(c.wdir)) + '</span><span class="spd">' + Math.round(c.ws) + "/" + (c.gust !== null ? Math.round(c.gust) : "–") + '</span><span class="deg">' + Math.round(c.wdir) + "° · kts</span></div>" +
       '<span class="attr">© OpenStreetMap</span></div>';
     /* gauges */
     var hs = c.wh !== null ? c.wh : c.sh, per = c.sp !== null ? c.sp : c.wp;
     var G = ["var(--score-good)", "var(--score-good)", "var(--score-ok)", "var(--score-ok)", "var(--score-bad)", "var(--score-bad)"];
     var P = ["var(--score-bad)", "var(--score-ok)", "var(--score-good)", "var(--score-good)", "var(--score-good)", "var(--score-ok)"];
-    var gauges = '<div class="gauges">' +
+    var gauges = '<div class="gauges tap" role="button" tabindex="0" data-sheet="waves" data-sid="' + s.id + '">' +
       arcGauge(hs, 0, 4, G, hs === null ? "–" : hs.toFixed(1), "METRES", "Wave height") +
       arcGauge(hs === null ? null : hs * 1.8, 0, 7, G, hs === null ? "–" : (hs * 1.8).toFixed(1), "METRES", "Biggest waves") +
       arcGauge(per, 4, 16, P, per === null ? "–" : per.toFixed(1), "SECONDS", "Period") + "</div>";
@@ -930,9 +953,92 @@ footer a { color: var(--accent); }
       '<div class="row">Water <b style="float:right">' + (c.sst !== null && c.sst !== undefined ? c.sst.toFixed(1) + "°C" : "–") + '</b></div><div class="row">Air <b style="float:right">' + (c.air !== null && c.air !== undefined ? c.air.toFixed(1) + "°C" : "–") + "</b></div></div>";
     el.innerHTML = '<div class="now-title"><h3>Right now' + (isTauranga ? " · Tauranga" : "") + '</h3><span class="label">' + esc(clock(nowH)) + " · model forecast</span></div>" + map + gauges +
       '<div class="now-bottom">' + tideBox + sunBox + "</div>" +
-      '<div class="now-foot">Forecast for this hour from Open-Meteo, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide is relative to mean sea level.' +
+      '<div class="now-foot">Tap the wind or the wave dials for the next 6 to 36 hours. Forecast for this hour from Open-Meteo, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide is relative to mean sea level.' +
       (isTauranga ? ' For live harbour readings see <a href="https://www.port-tauranga.co.nz/operations/harbour-conditions/" target="_blank" rel="noopener">Port of Tauranga harbour conditions ↗</a>.' : "") + "</div>";
   }
+
+  /* ---- Detail sheets for the Right now card ---- */
+  var sheetState = { kind: null, hours: 6, sid: null };
+  function hourAt(sid, offset) {
+    var nowH = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
+    var t = nowH + offset, d = Math.floor(t / 24), h = t % 24;
+    if (!model.spots[sid][d]) return null;
+    var c = model.spots[sid][d].hour(h); c.h24 = h; c.d = d; return c;
+  }
+  function lineChart(series, n, yLabel, yMaxMin, arrows) {
+    var W = 340, H = 190, L = 30, R = 10, T = arrows ? 26 : 10, B = 24;
+    var vals = []; series.forEach(function (sr) { sr.v.forEach(function (v) { if (v !== null && v !== undefined) vals.push(v); }); });
+    var ymax = Math.max(yMaxMin, Math.ceil((Math.max.apply(null, vals.concat([0])) * 1.2) * 2) / 2);
+    function X(i) { return L + (W - L - R) * i / Math.max(1, n); }
+    function Y(v) { return T + (H - T - B) * (1 - v / ymax); }
+    var g = "", step = ymax <= 2 ? 0.5 : ymax <= 6 ? 1 : ymax <= 20 ? 5 : 10;
+    for (var y = 0; y <= ymax + 0.001; y += step) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(y).toFixed(1) + '" y2="' + Y(y).toFixed(1) + '" style="stroke:var(--line);stroke-width:1"/><text x="' + (L - 5) + '" y="' + (Y(y) + 3).toFixed(1) + '" text-anchor="end" style="fill:var(--muted);font-family:var(--font-data);font-size:9px">' + (Math.round(y * 10) / 10) + "</text>";
+    var labEvery = n <= 6 ? 1 : n <= 12 ? 2 : n <= 24 ? 4 : 6;
+    series[0].t.forEach(function (h, i) { if (i % labEvery === 0 && h !== null) g += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle" style="fill:var(--muted);font-family:var(--font-data);font-size:9px">' + esc(clock(h)) + "</text>"; });
+    series.forEach(function (sr) {
+      var pts = []; sr.v.forEach(function (v, i) { if (v !== null && v !== undefined) pts.push(X(i).toFixed(1) + "," + Y(v).toFixed(1)); });
+      if (sr.fill && pts.length > 1) g += '<polygon points="' + X(0).toFixed(1) + "," + Y(0) + " " + pts.join(" ") + " " + X(sr.v.length - 1).toFixed(1) + "," + Y(0) + '" style="fill:' + sr.col + ';opacity:0.12"/>';
+      if (pts.length > 1) g += '<polyline points="' + pts.join(" ") + '" style="fill:none;stroke:' + sr.col + ";stroke-width:2.5;stroke-linejoin:round" + (sr.dash ? ";stroke-dasharray:" + sr.dash : "") + '"/>';
+      if (sr.v[0] !== null && sr.v[0] !== undefined) g += '<circle cx="' + X(0) + '" cy="' + Y(sr.v[0]).toFixed(1) + '" r="4.5" style="fill:var(--surface);stroke:' + sr.col + ';stroke-width:2.5"/>';
+    });
+    if (arrows) arrows.forEach(function (a, i) { if (a && i % labEvery === 0) g += '<path transform="translate(' + X(i).toFixed(1) + ",13) rotate(" + ((a.dir + 180) % 360) + ')" d="M0,-8 L5,1 L1.6,0 L1.6,8 L-1.6,8 L-1.6,0 L-5,1 Z" style="fill:' + a.col + '"/>'; });
+    return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="' + esc(yLabel) + ' chart">' + g + "</svg>";
+  }
+  function dirTxt(d) { return d === null || d === undefined ? "–" : compass(d) + " " + Math.round(d) + "°"; }
+  function renderSheet() {
+    var sid = sheetState.sid, s = spotById(sid), n = sheetState.hours, rows = [];
+    for (var i = 0; i <= n; i++) rows.push(hourAt(sid, i));
+    var c = rows[0], body = "";
+    var btns = '<div class="range-btns">' + [6, 12, 24, 36].map(function (x) { return '<button type="button" data-hrs="' + x + '" aria-pressed="' + (x === n) + '">' + x + "h</button>"; }).join("") + "</div>";
+    var nowLab = model.days[c.d].wk + " " + model.days[c.d].d + " " + model.days[c.d].m + " · " + clock(c.h24);
+    function hv(x) { return x === null || x === undefined ? "–" : x.toFixed(1); }
+    if (sheetState.kind === "waves") {
+      document.getElementById("sheet-title").textContent = "Waves · " + s.name;
+      var tv = rows.map(function (r) { return r ? r.wh : null; }), sv = rows.map(function (r) { return r ? r.sh : null; }), wv = rows.map(function (r) { return r ? r.wwh : null; }), tt = rows.map(function (r) { return r ? r.h24 : null; });
+      var pk = 0; tv.forEach(function (v, i) { if (v !== null && (tv[pk] === null || v > tv[pk])) pk = i; });
+      body = '<div class="sbox"><div class="shead"><div><div class="label">Marine forecast · this hour</div><b style="font-family:var(--font-display);font-size:18px">' + esc(nowLab) + "</b></div></div>" +
+        '<div class="strow"><span class="k" style="color:var(--accent)">Total waves</span><span class="v">' + hv(c.wh) + "<small>metres</small></span><span class=\"v\">" + hv(c.wp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wd)) + "<small>from</small></span></div>" +
+        '<div class="strow"><span class="k" style="color:var(--sun)">Swell</span><span class="v">' + hv(c.sh) + "<small>metres</small></span><span class=\"v\">" + hv(c.sp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.sd)) + "<small>from</small></span></div>" +
+        '<div class="strow"><span class="k" style="color:var(--rain)">Wind waves</span><span class="v">' + hv(c.wwh) + "<small>metres</small></span><span class=\"v\">" + hv(c.wwp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wwd)) + "<small>from</small></span></div>" +
+        '<div class="slegend"><span><i style="border-color:var(--accent)"></i>Total</span><span><i style="border-color:var(--sun);border-top-style:dashed"></i>Swell</span><span><i style="border-color:var(--rain);border-top-style:dotted"></i>Wind waves</span></div>' +
+        lineChart([{ v: tv, t: tt, col: "var(--accent)", fill: true }, { v: sv, t: tt, col: "var(--sun)", dash: "7 4" }, { v: wv, t: tt, col: "var(--rain)", dash: "2 4" }], n, "Wave height (m)", 2) +
+        '<div class="shead"><span class="label">Next</span>' + btns + "</div>" +
+        (tv[pk] !== null ? '<div style="font-weight:600;color:var(--fair)">Peak ' + hv(tv[pk]) + " m at " + esc(clock(rows[pk].h24)) + (rows[pk].d !== c.d ? " " + esc(model.days[rows[pk].d].wk) : "") + " · from " + esc(dirTxt(rows[pk].wd)) + "</div>" : "") +
+        '<p class="hint">Open-Meteo marine model for the sea just off ' + esc(s.name) + ". A forecast, not measured waves.</p></div>";
+    } else {
+      document.getElementById("sheet-title").textContent = "Wind · " + s.name;
+      var ws = rows.map(function (r) { return r ? r.ws : null; }), gs = rows.map(function (r) { return r ? r.gust : null; }), tt2 = rows.map(function (r) { return r ? r.h24 : null; });
+      var arrows = rows.map(function (r) { if (!r || r.wdir === null) return null; var k = windKind(s, r); return { dir: r.wdir, col: k === "offshore" ? "var(--wind-off)" : k === "onshore" ? "var(--wind-on)" : "var(--wind-other)" }; });
+      var pk2 = 0; gs.forEach(function (v, i) { if (v !== null && (gs[pk2] === null || v > gs[pk2])) pk2 = i; });
+      var k0 = windKind(s, c), kcol = k0 === "offshore" ? "var(--wind-off)" : k0 === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
+      body = '<div class="sbox"><div class="shead"><div><div class="label">Wind forecast · this hour</div><b style="font-family:var(--font-display);font-size:18px">' + esc(nowLab) + "</b></div></div>" +
+        '<div class="strow" style="grid-template-columns:repeat(3,minmax(0,1fr))"><span class="v">' + (c.ws === null ? "–" : Math.round(c.ws)) + "<small>kts wind</small></span><span class=\"v\">" + (c.gust === null ? "–" : Math.round(c.gust)) + "<small>kts gusts</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wdir)) + '<small style="color:' + kcol + ';font-weight:600">' + esc({ offshore: "offshore", onshore: "onshore", cross: "cross-shore", light: "light" }[k0] || "") + "</small></span></div>" +
+        '<div class="slegend"><span><i style="border-color:var(--fg)"></i>Wind</span><span><i style="border-color:var(--fair);border-top-style:dashed"></i>Gusts</span><span>Arrows: green offshore, orange cross-shore or light, red onshore</span></div>' +
+        lineChart([{ v: ws, t: tt2, col: "var(--fg)", fill: true }, { v: gs, t: tt2, col: "var(--fair)", dash: "7 4" }], n, "Wind (kts)", 10, arrows) +
+        '<div class="shead"><span class="label">Next</span>' + btns + "</div>" +
+        (gs[pk2] !== null ? '<div style="font-weight:600;color:var(--fair)">Strongest gusts ' + Math.round(gs[pk2]) + " kts at " + esc(clock(rows[pk2].h24)) + (rows[pk2].d !== c.d ? " " + esc(model.days[rows[pk2].d].wk) : "") + " · from " + esc(dirTxt(rows[pk2].wdir)) + "</div>" : "") +
+        '<p class="hint">Open-Meteo wind model at ' + esc(s.name) + ". A forecast, not a station reading.</p></div>";
+    }
+    document.getElementById("sheet-body").innerHTML = body;
+  }
+  function openSheet(kind, sid) {
+    sheetState.kind = kind; sheetState.sid = sid; sheetState.hours = 6;
+    renderSheet();
+    document.getElementById("sheet").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeSheet() { document.getElementById("sheet").hidden = true; document.body.style.overflow = ""; }
+  document.getElementById("sheet-close").addEventListener("click", closeSheet);
+  document.getElementById("sheet").addEventListener("click", function (e) {
+    if (e.target.id === "sheet") { closeSheet(); return; }
+    var b = e.target.closest("[data-hrs]");
+    if (b) { sheetState.hours = +b.getAttribute("data-hrs"); renderSheet(); }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("sheet").hidden) closeSheet(); });
+  document.getElementById("now-card").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-sheet]");
+    if (t && model) openSheet(t.getAttribute("data-sheet"), t.getAttribute("data-sid"));
+  });
 
   function renderHomeTab() {
     if (!model) return;
