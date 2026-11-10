@@ -171,6 +171,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hw-day .meta { font-size: 12px; color: var(--muted); grid-column: 3 / -1; }
 .hw-day .score-badge { font-family: var(--font-data); font-size: 14px; font-weight: 500; border-radius: 6px; padding: 2px 8px; color: var(--surface); }
 .hw-day .wxs { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-align: center; }
+.hw-day .more, .hw-day .meta { display: none; }
+.hw-day.open .more { display: inline; }
+.hw-day.open .meta { display: block; }
+.hw-day .chev { width: 16px; height: 16px; color: var(--muted); transition: transform .15s; }
+.hw-day.open .chev { transform: rotate(180deg); }
+.hw-day .right { display: flex; align-items: center; gap: 8px; }
 .about { max-width: 68ch; }
 .about h3 { font-family: var(--font-display); font-weight: 600; font-size: 17px; margin: 10px 0 0; }
 .about p, .about ul { margin: 0; font-size: 15px; }
@@ -458,14 +464,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 57 · tagline moved to About</span>
+    <span>App version 58 · day forecast folds open</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 57;
+  var APP_VERSION = 58;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1440,9 +1446,9 @@ footer a { color: var(--accent); }
     document.getElementById("hw-days").innerHTML = stats.map(function (x) {
       var dy = model.days[x.d], wx = x.wx, kind = sky(wx.code);
       var badge = x.best ? '<span class="score-badge" style="background:' + TIER_FILL[tier(x.best.score)] + '">' + x.best.score + "</span>" : "";
-      return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
+      return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" aria-expanded="false" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
         '<span class="wxs">' + (wx.tmax !== null ? miniSky(kind) + Math.round(wx.tmax) + "°" : "") + "</span>" +
-        '<span><span class="ft">' + (x.best ? esc(ftRange(x.best.ft)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best at ' + esc(clock(x.best.hour)) + " · " + board(x.best.ft) + (ftRange(x.maxFt) !== ftRange(x.best.ft) ? " · up to " + esc(ftRange(x.maxFt)) + " during the day" : "") + "</span>" : "") + "</span>" + badge +
+        '<span><span class="ft">' + (x.best ? esc(ftRange(x.best.ft)) : "–") + "</span>" + (x.best ? ' <span class="hint more" style="font-size:12px">best at ' + esc(clock(x.best.hour)) + " · " + board(x.best.ft) + (ftRange(x.maxFt) !== ftRange(x.best.ft) ? " · up to " + esc(ftRange(x.maxFt)) + " during the day" : "") + "</span>" : "") + "</span>" + '<span class="right">' + badge + '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
         '<span class="meta">' + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
     }).join("");
     /* Chart + conditions */
@@ -1965,7 +1971,9 @@ footer a { color: var(--accent); }
       var hd = +t.getAttribute("data-hwday"), hs2 = spotById(alertCfg.home.spot), bs = bestSlot(hs2.id, hd);
       homeSel = { sid: hs2.id, d: hd, k: bs ? SLOT_LAB.indexOf(bs.lab) : 1 };
       renderCond(homeSel.d, homeSel.k, homeSel.sid, "hw-cond");
-      try { document.getElementById("hw-cond").scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
+      var wasOpen = t.classList.contains("open");
+      document.querySelectorAll(".hw-day.open").forEach(function (o) { o.classList.remove("open"); o.setAttribute("aria-expanded", "false"); });
+      if (!wasOpen) { t.classList.add("open"); t.setAttribute("aria-expanded", "true"); }
       return;
     }
     if (t.hasAttribute("data-home")) {
