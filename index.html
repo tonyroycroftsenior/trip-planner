@@ -268,8 +268,8 @@ footer a { color: var(--accent); }
   </header>
   <svg class="wave-rule" viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true"><path d="M0 5 Q 12.5 0 25 5 T 50 5 T 75 5 T 100 5 T 125 5 T 150 5 T 175 5 T 200 5 T 225 5 T 250 5 T 275 5 T 300 5 T 325 5 T 350 5 T 375 5 T 400 5" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
   <nav class="tabs-nav layout-bottom" role="tablist" aria-label="Pages">
-    <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="tlab">Plan</span></button>
-    <button type="button" role="tab" class="tab" data-tab="home" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="tlab">Home</span></button>
+    <button type="button" role="tab" class="tab" data-tab="home" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="tlab">Home</span></button>
+    <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="tlab">Plan</span></button>
     <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 15c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 20c3 0 3-3 6-3s3 3 6 3 3-3 6-3M15 4l2 2 4-4"/></svg><span class="tlab">Runs</span></button>
     <button type="button" role="tab" class="tab" data-tab="crew" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c3 .2 5.5 2.3 5.5 5.8"/></svg><span class="tlab">Crew</span></button>
     <button type="button" role="tab" class="tab" data-tab="settings" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span class="tlab">Settings</span></button>
@@ -295,7 +295,7 @@ footer a { color: var(--accent); }
     <div class="range-line"><strong id="range-text"></strong><span class="label" id="range-len"></span></div>
   </section>
 
-  <section class="stack" aria-labelledby="home-h" id="home-sec" data-page="plan">
+  <section class="stack" aria-labelledby="home-h" id="home-sec" data-page="home">
     <h2 id="home-h">Home spot</h2>
     <div class="runs" id="home-card"></div>
   </section>
@@ -458,14 +458,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 54 · easier session logging</span>
+    <span>App version 55 · Home first</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 54;
+  var APP_VERSION = 55;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1969,12 +1969,12 @@ footer a { color: var(--accent); }
       return;
     }
     if (t.hasAttribute("data-home")) {
-      location.hash = "home";
+      try { document.getElementById("hw-days").scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
       return;
     }
     if (t.hasAttribute("data-run")) {
       var rr = t.getAttribute("data-run").split(",");
-      history.replaceState(null, "", location.pathname + location.search); showPage("plan", true);
+      location.hash = "plan"; showPage("plan", true);
       state.start = +rr[0]; state.end = +rr[1]; state.picking = "start";
       renderStrip(); renderTrips(); chooseRegion(t.getAttribute("data-run-region")); renderTrips(); renderSpot();
       try { document.getElementById("trip-h").scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (err) {}
@@ -2156,7 +2156,7 @@ footer a { color: var(--accent); }
 
   var PAGES = ["plan", "home", "runs", "crew", "settings", "about"];
   function showPage(name, noScroll) {
-    if (PAGES.indexOf(name) < 0) name = "plan";
+    if (PAGES.indexOf(name) < 0) name = "home";
     document.querySelectorAll("[data-page]").forEach(function (el) { el.hidden = el.getAttribute("data-page") !== name; });
     document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-selected", b.getAttribute("data-tab") === name ? "true" : "false"); });
     if (!noScroll) { try { window.scrollTo({ top: 0 }); } catch (e) {} }
@@ -2165,7 +2165,7 @@ footer a { color: var(--accent); }
     if (!document.getElementById("sheet").hidden) closeSheet();
     var b = e.target.closest(".tab"); if (!b) return;
     var name = b.getAttribute("data-tab");
-    if (location.hash !== "#" + name) { if (name === "plan") history.replaceState(null, "", location.pathname + location.search); else location.hash = name; }
+    if (location.hash !== "#" + name) { if (name === "home") history.replaceState(null, "", location.pathname + location.search); else location.hash = name; }
     showPage(name);
   });
   window.addEventListener("hashchange", function () { showPage(location.hash.slice(1)); });
