@@ -161,6 +161,33 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .about p, .about ul { margin: 0; font-size: 15px; }
 .about ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .about a { color: var(--accent); }
+.now-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.now-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; font-family: var(--font-data); font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.now-top b { color: var(--fg); font-weight: 500; }
+.now-title { padding: 12px 14px 0; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.now-title h3 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+.now-map { position: relative; height: 230px; margin: 10px 14px 0; border-radius: 12px; overflow: hidden; background: var(--accent-soft); }
+.now-map .tiles { position: absolute; inset: 0; filter: grayscale(0.6) sepia(0.45) brightness(1.03) contrast(0.85); opacity: 0.8; }
+.now-map .tiles img { position: absolute; width: 256px; height: 256px; max-width: none; }
+.now-map svg.overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+.now-map .attr { position: absolute; right: 6px; bottom: 4px; font-size: 9px; color: var(--fg); background: color-mix(in srgb, var(--surface) 70%, transparent); padding: 0 4px; border-radius: 3px; }
+.wind-badge { position: absolute; transform: translate(-50%, -50%); width: 108px; height: 108px; border-radius: 50%; background: var(--surface); border: 3px solid var(--wb, var(--fg)); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(61, 50, 38, 0.18); }
+.wind-badge .dir { font-family: var(--font-data); font-size: 13px; color: var(--muted); }
+.wind-badge .spd { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1; color: var(--wb, var(--fg)); }
+.wind-badge .deg { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.wind-tag { position: absolute; left: 12px; top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; line-height: 1.3; }
+.wind-tag b { display: block; font-family: var(--font-display); font-size: 14px; }
+.gauges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 12px 10px 4px; }
+.gauge { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.gauge svg { width: 100%; max-width: 120px; height: auto; display: block; }
+.gauge .glabel { font-family: var(--font-data); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: -2px; text-align: center; }
+.now-bottom { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px; padding: 8px 14px 14px; }
+@media (max-width: 420px) { .now-bottom { grid-template-columns: 1fr; } }
+.tide-box, .sun-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 0; }
+.tide-box .state { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
+.tide-box .row, .sun-box .row { font-size: 13px; }
+.now-foot { padding: 0 14px 12px; font-size: 12px; color: var(--muted); }
+.now-foot a { color: var(--accent); }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -221,6 +248,7 @@ footer a { color: var(--accent); }
 
   <section class="stack" aria-labelledby="hw-h" data-page="home" hidden>
     <div><div class="label">Your home spot · next 7 days</div><h2 id="hw-h" style="font-size:24px">–</h2><p class="hint" id="hw-sub"></p></div>
+    <div class="now-card" id="now-card"></div>
     <div class="hw-analysis" id="hw-analysis"></div>
     <div class="hw-days" id="hw-days"></div>
     <div class="cond" id="hw-cond"></div>
@@ -327,14 +355,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 39 · offshore within 30°</span>
+    <span>App version 40 · Right now card on Home</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 39;
+  var APP_VERSION = 40;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -347,7 +375,7 @@ footer a { color: var(--accent); }
   var NDAYS = 14;
   var SLOT_HOURS = [6, 9, 12, 15, 18];
   var SLOT_LAB = ["6a", "9a", "12p", "3p", "6p"];
-  var CACHE_KEY = "surf-trip-forecast-v2";
+  var CACHE_KEY = "surf-trip-forecast-v3";
   var SETTINGS_KEY = "surf-trip-spot-settings-v1";
   var CACHE_MAX_AGE = 60 * 60 * 1000;
 
@@ -475,12 +503,12 @@ footer a { color: var(--accent); }
   }
 
   var WEATHER_PARAMS = {
-    hourly: "wind_speed_10m,wind_direction_10m,wind_gusts_10m",
-    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max",
+    hourly: "wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m",
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset",
     wind_speed_unit: "kn", timezone: TZ, forecast_days: NDAYS
   };
   var MARINE_PARAMS = {
-    hourly: "swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction,sea_level_height_msl",
+    hourly: "swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction,sea_level_height_msl,sea_surface_temperature",
     timezone: TZ, forecast_days: NDAYS
   };
 
@@ -559,7 +587,8 @@ footer a { color: var(--accent); }
             tmax: dl.temperature_2m_max ? dl.temperature_2m_max[di] : null,
             tmin: dl.temperature_2m_min ? dl.temperature_2m_min[di] : null,
             rain: dl.precipitation_sum ? dl.precipitation_sum[di] : null,
-            pop: dl.precipitation_probability_max ? dl.precipitation_probability_max[di] : null
+            pop: dl.precipitation_probability_max ? dl.precipitation_probability_max[di] : null,
+            sunrise: dl.sunrise ? dl.sunrise[di] : null, sunset: dl.sunset ? dl.sunset[di] : null
           },
           hour: function (h) {
             var t = d.key + "T" + (h < 10 ? "0" : "") + h + ":00";
@@ -567,7 +596,8 @@ footer a { color: var(--accent); }
               sh: mv("swell_wave_height", t), sp: mv("swell_wave_period", t), sd: mv("swell_wave_direction", t),
               wwh: mv("wind_wave_height", t), wwp: mv("wind_wave_period", t), wwd: mv("wind_wave_direction", t),
               wh: mv("wave_height", t), wp: mv("wave_period", t), wd: mv("wave_direction", t),
-              ws: wv("wind_speed_10m", t), wdir: wv("wind_direction_10m", t), gust: wv("wind_gusts_10m", t)
+              ws: wv("wind_speed_10m", t), wdir: wv("wind_direction_10m", t), gust: wv("wind_gusts_10m", t),
+              air: wv("temperature_2m", t), sst: mv("sea_surface_temperature", t)
             };
           }
         };
@@ -819,6 +849,91 @@ footer a { color: var(--accent); }
   }
   function miniSky(kind) { return '<svg viewBox="0 0 60 48" width="44" height="35" aria-hidden="true">' + skyIcon(kind, 30, 20) + "</svg>"; }
   var homeSel = null;
+  /* ---- Right now card (Windicator-style) ---- */
+  function projector(lat, lon, w, h, z) {
+    var n = Math.pow(2, z) * 256;
+    function px(la, lo) { var r = la * Math.PI / 180; return [(lo + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n]; }
+    var c = px(lat, lon), x0 = c[0] - w / 2, y0 = c[1] - h / 2, tiles = "";
+    for (var tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + w) / 256); tx++)
+      for (var ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + h) / 256); ty++)
+        tiles += '<img alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'" src="https://tile.openstreetmap.org/' + z + "/" + tx + "/" + ty + '.png" style="left:' + Math.round(tx * 256 - x0) + "px;top:" + Math.round(ty * 256 - y0) + 'px">';
+    return { tiles: tiles, at: function (la, lo) { var p = px(la, lo); return [p[0] - x0, p[1] - y0]; } };
+  }
+  function arcGauge(value, min, max, stops, big, unit, label) {
+    /* 240-degree arc, coloured bands, needle and value in the middle */
+    var cx = 60, cy = 58, R = 46, a0 = -120, a1 = 120, g = "";
+    function pt(r, a) { var t = (a - 90) * Math.PI / 180; return [cx + r * Math.cos(t), cy + r * Math.sin(t)]; }
+    function arc(r, from, to) { var p = pt(r, from), q = pt(r, to); return "M" + p[0].toFixed(1) + "," + p[1].toFixed(1) + " A" + r + "," + r + " 0 " + (to - from > 180 ? 1 : 0) + " 1 " + q[0].toFixed(1) + "," + q[1].toFixed(1); }
+    var n = stops.length;
+    stops.forEach(function (col, i) { g += '<path d="' + arc(R, a0 + (a1 - a0) * i / n + 1, a0 + (a1 - a0) * (i + 1) / n - 1) + '" style="fill:none;stroke:' + col + ';stroke-width:9"/>'; });
+    if (value !== null && value !== undefined) {
+      var f = Math.max(0, Math.min(1, (value - min) / (max - min))), a = a0 + (a1 - a0) * f;
+      var tip = pt(R - 2, a), base = pt(18, a);
+      g += '<line x1="' + base[0].toFixed(1) + '" y1="' + base[1].toFixed(1) + '" x2="' + tip[0].toFixed(1) + '" y2="' + tip[1].toFixed(1) + '" style="stroke:var(--fg);stroke-width:2.5;stroke-linecap:round"/>';
+    }
+    g += '<circle cx="' + cx + '" cy="' + cy + '" r="27" style="fill:var(--bg);stroke:var(--line);stroke-width:1"/>';
+    g += '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" style="fill:var(--fg);font-family:var(--font-display);font-weight:800;font-size:19px">' + esc(big) + "</text>";
+    g += '<text x="' + cx + '" y="' + (cy + 17) + '" text-anchor="middle" style="fill:var(--muted);font-family:var(--font-data);font-size:8px;letter-spacing:0.08em">' + esc(unit) + "</text>";
+    return '<div class="gauge"><svg viewBox="0 0 120 100" aria-hidden="true">' + g + '</svg><div class="glabel">' + esc(label) + "</div></div>";
+  }
+  function hhmm(iso) { if (!iso) return "–"; var h = +iso.slice(11, 13), m = iso.slice(14, 16); return (h % 12 || 12) + ":" + m + (h < 12 ? "am" : "pm"); }
+  function renderNowCard(s) {
+    var el = document.getElementById("now-card");
+    var nowH = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
+    var dd = model.spots[s.id][0], c = dd.hour(nowH);
+    if (!model.days[0] || model.days[0].dow !== "Today" || c.ws === null) { el.innerHTML = ""; el.hidden = true; return; }
+    el.hidden = false;
+    var isTauranga = s.region === "Mount Maunganui";
+    var kind = windKind(s, c);
+    var wcol = kind === "offshore" ? "var(--wind-off)" : kind === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
+    /* map with wind badge and arrow */
+    var W = 360, H = 230, center = isTauranga ? { lat: -37.648, lon: 176.185 } : { lat: s.lat, lon: s.lon };
+    var pj = projector(center.lat, center.lon, W, H, isTauranga ? 13 : 13);
+    var spotPt = pj.at(s.lat, s.lon);
+    var bx = Math.max(64, Math.min(W - 64, spotPt[0])), by = Math.max(64, Math.min(H - 64, spotPt[1]));
+    var toward = (c.wdir + 180) % 360, rad = (toward - 90) * Math.PI / 180;
+    var x1 = bx - Math.cos(rad) * 112, y1 = by - Math.sin(rad) * 112, x2 = bx - Math.cos(rad) * 58, y2 = by - Math.sin(rad) * 58;
+    var overlay = '<svg class="overlay" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" style="stroke:' + wcol + ';stroke-width:6;stroke-linecap:round"/>' +
+      '<path transform="translate(' + x2.toFixed(1) + "," + y2.toFixed(1) + ") rotate(" + toward + ')" d="M0,-10 L-11,8 L0,3 L11,8 Z" style="fill:' + wcol + '"/>' +
+      [0.35, 0.6, 0.85].map(function (f) { var fx = x1 + (x2 - x1) * f * 0.5, fy = y1 + (y2 - y1) * f * 0.5; return '<path transform="translate(' + fx.toFixed(1) + "," + fy.toFixed(1) + ") rotate(" + toward + ')" d="M-7,6 L0,-2 L7,6" style="fill:none;stroke:' + wcol + ';stroke-width:2.5;stroke-linecap:round;opacity:0.85"/>'; }).join("") +
+      "</svg>";
+    var badgeLeft = "calc(50% + " + Math.round(bx - W / 2) + "px)", badgeTop = "calc(50% + " + Math.round(by - H / 2) + "px)";
+    var kindWord = { offshore: "Offshore", onshore: "Onshore", cross: "Cross-shore", light: "Light" }[kind] || "";
+    var map = '<div class="now-map"><div class="tiles" style="left:50%;top:50%;width:' + W + "px;height:" + H + 'px;transform:translate(-50%,-50%)">' + pj.tiles + "</div>" + overlay +
+      '<div class="wind-tag"><b>' + esc(s.name) + '</b><span style="color:' + wcol + ';font-weight:600">' + esc(kindWord) + "</span> · " + esc(clock(nowH)) + "</div>" +
+      '<div class="wind-badge" style="left:' + badgeLeft + ";top:" + badgeTop + ";--wb:" + wcol + '"><span class="dir">' + esc(compass(c.wdir)) + '</span><span class="spd">' + Math.round(c.ws) + "/" + (c.gust !== null ? Math.round(c.gust) : "–") + '</span><span class="deg">' + Math.round(c.wdir) + "° · kts</span></div>" +
+      '<span class="attr">© OpenStreetMap</span></div>';
+    /* gauges */
+    var hs = c.wh !== null ? c.wh : c.sh, per = c.sp !== null ? c.sp : c.wp;
+    var G = ["var(--score-good)", "var(--score-good)", "var(--score-ok)", "var(--score-ok)", "var(--score-bad)", "var(--score-bad)"];
+    var P = ["var(--score-bad)", "var(--score-ok)", "var(--score-good)", "var(--score-good)", "var(--score-good)", "var(--score-ok)"];
+    var gauges = '<div class="gauges">' +
+      arcGauge(hs, 0, 4, G, hs === null ? "–" : hs.toFixed(1), "METRES", "Wave height") +
+      arcGauge(hs === null ? null : hs * 1.8, 0, 7, G, hs === null ? "–" : (hs * 1.8).toFixed(1), "METRES", "Biggest waves") +
+      arcGauge(per, 4, 16, P, per === null ? "–" : per.toFixed(1), "SECONDS", "Period") + "</div>";
+    /* tide: current state and next two turns */
+    var tides = dd.tides.concat(model.spots[s.id][1] ? model.spots[s.id][1].tides : []);
+    var cur = tides[nowH], nxt = tides[nowH + 1], turns = [];
+    for (var h = nowH + 1; h < tides.length - 1 && turns.length < 2; h++) {
+      var a = tides[h - 1], b = tides[h], d2 = tides[h + 1];
+      if (a === null || b === null || d2 === null) continue;
+      if (b >= a && b > d2) turns.push({ hi: true, h: h, v: b }); else if (b <= a && b < d2) turns.push({ hi: false, h: h, v: b });
+    }
+    var vals = dd.tides.filter(function (v) { return v !== null; });
+    var tlo = vals.length ? Math.min.apply(null, vals) : 0, thi = vals.length ? Math.max.apply(null, vals) : 1;
+    var tideGauge = cur === null || cur === undefined ? "" : arcGauge(cur, tlo, thi, ["var(--rain)", "var(--rain)", "var(--rain)", "var(--rain)"], (cur >= 0 ? "+" : "") + cur.toFixed(2), "M vs MEAN", "Tide now");
+    var state = cur === null || nxt === null || nxt === undefined ? "" : nxt > cur ? "Incoming" : "Outgoing";
+    var tideBox = '<div class="tide-box"><div style="display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:center"><div>' + tideGauge + '</div><div><div class="state" style="color:var(--rain)">' + esc(state) + "</div>" +
+      turns.map(function (t) { var dayW = t.h >= 24 ? "Tmrw " : ""; return '<div class="row">' + (t.hi ? "↑ High " : "↓ Low ") + esc(dayW + clock(t.h % 24)) + ' <span class="hint">(' + (t.v >= 0 ? "+" : "") + t.v.toFixed(2) + " m)</span></div>"; }).join("") + "</div></div></div>";
+    var sunBox = '<div class="sun-box"><div class="row">☀︎ Sunrise <b style="float:right">' + esc(hhmm(dd.wx.sunrise)) + '</b></div><div class="row">☾ Sunset <b style="float:right">' + esc(hhmm(dd.wx.sunset)) + "</b></div>" +
+      '<div class="row">Water <b style="float:right">' + (c.sst !== null && c.sst !== undefined ? c.sst.toFixed(1) + "°C" : "–") + '</b></div><div class="row">Air <b style="float:right">' + (c.air !== null && c.air !== undefined ? c.air.toFixed(1) + "°C" : "–") + "</b></div></div>";
+    el.innerHTML = '<div class="now-title"><h3>Right now' + (isTauranga ? " · Tauranga" : "") + '</h3><span class="label">' + esc(clock(nowH)) + " · model forecast</span></div>" + map + gauges +
+      '<div class="now-bottom">' + tideBox + sunBox + "</div>" +
+      '<div class="now-foot">Forecast for this hour from Open-Meteo, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide is relative to mean sea level.' +
+      (isTauranga ? ' For live harbour readings see <a href="https://www.port-tauranga.co.nz/operations/harbour-conditions/" target="_blank" rel="noopener">Port of Tauranga harbour conditions ↗</a>.' : "") + "</div>";
+  }
+
   function renderHomeTab() {
     if (!model) return;
     var s = spotById(alertCfg.home.spot) || allSpots()[0];
@@ -872,6 +987,7 @@ footer a { color: var(--accent); }
     if (!homeSel || homeSel.sid !== s.id) { var ds = defaultSlot(); homeSel = { sid: s.id, d: 0, k: ds[0] === 0 ? ds[1] : 1 }; }
     renderCond(homeSel.d, homeSel.k, s.id, "hw-cond");
     document.getElementById("hw-links").innerHTML = linksHTML(s);
+    renderNowCard(s);
   }
   document.getElementById("hw-chart").addEventListener("click", function (e) {
     var t = e.target.closest ? e.target.closest("[data-slot]") : null;
@@ -1187,7 +1303,7 @@ footer a { color: var(--accent); }
       for (var ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + box) / 256); ty++) {
         var src = key ? "https://basemaps.linz.govt.nz/v1/tiles/aerial/3857/" + z + "/" + tx + "/" + ty + ".png?api=" + encodeURIComponent(key)
                       : "https://tile.openstreetmap.org/" + z + "/" + tx + "/" + ty + ".png";
-        h += '<img alt="" loading="lazy" src="' + src + '" style="left:' + Math.round(tx * 256 - x0) + "px;top:" + Math.round(ty * 256 - y0) + 'px">';
+        h += '<img alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'" src="' + src + '" style="left:' + Math.round(tx * 256 - x0) + "px;top:" + Math.round(ty * 256 - y0) + 'px">';
       }
     return h;
   }
