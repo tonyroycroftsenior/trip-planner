@@ -458,14 +458,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 55 · Home first</span>
+    <span>App version 56 · scissor lift cams link</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 55;
+  var APP_VERSION = 56;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1450,7 +1450,7 @@ footer a { color: var(--accent); }
     document.getElementById("hw-chart").innerHTML = '<div style="padding:0 12px">' + chartSVG(s, days) + "</div>";
     if (!homeSel || homeSel.sid !== s.id) { var ds = defaultSlot(); homeSel = { sid: s.id, d: 0, k: ds[0] === 0 ? ds[1] : 1 }; }
     renderCond(homeSel.d, homeSel.k, s.id, "hw-cond");
-    document.getElementById("hw-links").innerHTML = linksHTML(s);
+    document.getElementById("hw-links").innerHTML = (s.region === "Mount Maunganui" ? '<a class="primary" href="https://scissorlifttauranga.nz/surf-cams/" target="_blank" rel="noopener">Surf cams · Scissor lift (Arataki) ↗</a>' : "") + linksHTML(s);
     renderNowCard(s);
   }
   document.getElementById("hw-chart").addEventListener("click", function (e) {
