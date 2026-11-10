@@ -1,0 +1,40 @@
+name: Harbour readings
+
+# Reads the live wind and wave numbers off the Port of Tauranga harbour conditions picture every few
+# minutes and keeps the last 24 hours in harbour.json on the harbour-data branch, where the app loads it.
+# The branch is rewritten as a single commit each time so it never grows.
+
+on:
+  schedule:
+    - cron: "*/5 0-10,15-23 * * *"   # about 4am to 11pm New Zealand time
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harbour-log
+  cancel-in-progress: false
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+      - name: Read the picture and add it to the history
+        run: |
+          python3 -c "import PIL, numpy" 2>/dev/null || pip install --quiet --break-system-packages pillow numpy || pip install --quiet pillow numpy
+          mkdir data && cd data
+          REMOTE="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git init -q -b harbour-data
+          if git fetch -q --depth 1 "$REMOTE" harbour-data 2>/dev/null; then git show FETCH_HEAD:harbour.json > harbour.json || rm -f harbour.json; fi
+          curl -sSL --fail --max-time 30 -A "DaysOffshore personal surf app (github.com/${{ github.repository }})" -D headers.txt -o potsum.jpg "https://www.port-tauranga.co.nz/cameras/potsum.jpg"
+          MOD=$(grep -i '^last-modified:' headers.txt | tail -1 | cut -d' ' -f2- | tr -d '\r')
+          python3 ../.github/scripts/harbour-read.py potsum.jpg "$MOD" harbour.json
+          git add harbour.json
+          git -c user.name="harbour-log" -c user.email="harbour-log@users.noreply.github.com" commit -q -m "Harbour readings"
+          git push -q -f "$REMOTE" harbour-data
