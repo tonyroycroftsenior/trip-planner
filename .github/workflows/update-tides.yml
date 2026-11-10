@@ -1,0 +1,32 @@
+name: Update tide tables
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 1 * *"   # monthly, picks up next year's tables when LINZ publishes them
+
+permissions:
+  contents: write
+
+jobs:
+  tides:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download LINZ standard port predictions
+        run: |
+          mkdir -p tides
+          Y=$(date -u +%Y); N=$((Y+1))
+          for port in "Tauranga" "Gisborne" "Port Taranaki" "Onehunga" "Napier"; do
+            for yr in $Y $N; do
+              f="tides/${port// /-}-${yr}.csv"
+              url="https://static.charts.linz.govt.nz/tide-tables/maj-ports/csv/${port// /%20}%20${yr}.csv"
+              if curl -fsSL "$url" -o "$f.tmp"; then mv "$f.tmp" "$f"; echo "OK $f"; head -8 "$f"; else rm -f "$f.tmp"; echo "Missing $url"; fi
+            done
+          done
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add tides
+          git diff --cached --quiet || git commit -m "Update LINZ tide tables" && git push
