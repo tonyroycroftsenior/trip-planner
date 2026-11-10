@@ -1,0 +1,12 @@
+name: probe-potsum
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sSL -A "Mozilla/5.0" -D h.txt -o potsum.jpg "https://www.port-tauranga.co.nz/cameras/potsum.jpg?t=$(date +%s)"
+          cat h.txt; file potsum.jpg; ls -l potsum.jpg
+          sudo apt-get install -y -qq tesseract-ocr >/dev/null 2>&1; tesseract potsum.jpg - 2>/dev/null | head -80
+      - uses: actions/upload-artifact@v4
+        with: { name: potsum, path: potsum.jpg }
