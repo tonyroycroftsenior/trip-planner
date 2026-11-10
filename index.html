@@ -474,14 +474,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 66 · live harbour readings, last 3 hours</span>
+    <span>App version 67 · home card skips past hours, shows measured wind</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 66;
+  var APP_VERSION = 67;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -997,15 +997,16 @@ footer a { color: var(--accent); }
   var alertCfg = upgradeCfg(load(ALERT_KEY) || load("surf-trip-alerts-v1"));
   var alertRepoCfg = null;
   /* A good day at a spot: at least minHours straight hours in the time window with swell >= minSwell and offshore (or light) wind */
-  function goodWindow(s, d, A) {
+  function goodWindow(s, d, A, fromHour) {
     A = A || alertCfg.trips;
     var dd = model.spots[s.id][d], best = null, cur = null;
-    for (var h = A.startHour; h <= A.endHour; h++) {
+    for (var h = Math.max(A.startHour, fromHour || 0); h <= A.endHour; h++) {
       var c = dd.hour(h), sw = c.sh !== null ? c.sh : c.wh;
       var ok = sw !== null && sw >= A.minSwell && c.ws !== null && c.wdir !== null && ((A.countLightWind && c.ws <= 5) || angDiff(c.wdir, s.offshore) <= 40);
       if (ok) {
-        if (!cur) cur = { start: h, end: h, sw: [], ws: [] };
+        if (!cur) cur = { start: h, end: h, sw: [], ws: [], allOff: true };
         cur.end = h; cur.sw.push(sw); cur.ws.push(c.ws);
+        if (angDiff(c.wdir, s.offshore) > 40) cur.allOff = false;
         if (!best || cur.end - cur.start > best.end - best.start) best = cur;
       } else cur = null;
     }
@@ -1211,11 +1212,19 @@ footer a { color: var(--accent); }
       : "Tug Berth is on the harbour side of the Mount, so it can read lighter than the beach in onshore winds. " + (abLive ? "" : "A-Beacon's own wind sensor is reading zero at the moment, so it's left out. ");
     return '<div class="sbox">' + head + top + '<div class="htable live-scroll"><table>' + table + "</table></div>" + '<p class="hint" style="margin:0">' + note + src + "</p></div>";
   }
+  /* On the Home spot card: what the wind is actually doing now, so a forecast "offshore" can be checked */
+  function measuredNowHTML(s) {
+    if (s.region !== "Mount Maunganui") return "";
+    var rows = harbourRows(30); if (!rows.length) return "";
+    var r = rows[0].r; if (r.tug_wind === null || r.tug_dir === null) return "";
+    var k = windKind(s, { ws: r.tug_wind, wdir: r.tug_dir }), col = k === "offshore" ? "var(--wind-off)" : k === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
+    return '<span class="run-day" style="color:var(--fg)">Measured ' + esc(hm12(r.t.slice(11, 16))) + ': <b style="color:' + col + '">' + esc(k === "cross" ? "cross-shore" : k) + "</b> " + esc(r.tug_wind + " kts " + compass(r.tug_dir) + (r.tug_gust !== null ? ", gusts " + r.tug_gust : "")) + "</span>";
+  }
   function refreshLive(force) {
     loadHarbour(force).then(function (changed) {
       if (!changed || !model) return;
       var hs = spotById(alertCfg.home.spot);
-      if (hs) renderNowCard(hs);
+      if (hs) { renderNowCard(hs); renderHome(); }
       if (sheetState.live && !document.getElementById("sheet").hidden) { var sc = document.querySelector("#sheet .sheet"), top = sc ? sc.scrollTop : 0; renderSheet(); if (sc) sc.scrollTop = top; }
     });
   }
@@ -1595,10 +1604,12 @@ footer a { color: var(--accent); }
     var s = spotById(H.spot);
     if (!s) { el.innerHTML = ""; return; }
     var days = [];
-    for (var d = 0; d < Math.min(H.daysAhead, model.days.length); d++) { var w = goodWindow(s, d, H); if (w) days.push({ d: d, w: w }); }
+    /* Today only counts the hours still to come */
+    var nowHr = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
+    for (var d = 0; d < Math.min(H.daysAhead, model.days.length); d++) { var w = goodWindow(s, d, H, d === 0 && model.days[0].dow === "Today" ? nowHr : 0); if (w) days.push({ d: d, w: w }); }
     el.innerHTML = '<button type="button" class="run" data-home="' + s.id + '"><span class="run-head"><b>' + esc(s.name) + "</b><span" + (days.length ? "" : ' style="color:var(--muted)"') + ">" + (days.length ? days.length + " good " + (days.length === 1 ? "session" : "sessions") : "nothing good") + " in the next " + (H.daysAhead === 1 ? "day" : H.daysAhead + " days") + "</span></span>" +
-      (days.length ? days.map(function (x) { var dy = model.days[x.d]; return '<span class="run-day">' + esc(dy.dow + ": offshore " + clock(x.w.start) + "–" + clock(x.w.end + 1) + " · " + x.w.swell.toFixed(1) + " m · " + x.w.wind + " kts") + "</span>"; }).join("")
-        : '<span class="run-day">Needs ' + H.minSwell + " m swell and " + H.minHours + "+ hours offshore between " + clock(H.startHour) + " and " + clock(H.endHour) + ".</span>") + "</button>" + tideNowHTML(s);
+      (days.length ? days.map(function (x) { var dy = model.days[x.d]; return '<span class="run-day">' + esc(dy.dow + ": " + (x.w.allOff ? "offshore " : "offshore or light ") + clock(x.w.start) + "–" + clock(x.w.end + 1) + " · " + x.w.swell.toFixed(1) + " m · " + x.w.wind + " kts") + "</span>"; }).join("")
+        : '<span class="run-day">Needs ' + H.minSwell + " m swell and " + H.minHours + "+ hours offshore between " + clock(H.startHour) + " and " + clock(H.endHour) + ".</span>") + measuredNowHTML(s) + "</button>" + tideNowHTML(s);
   }
 
   function renderRuns() {
