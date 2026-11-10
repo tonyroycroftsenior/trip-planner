@@ -228,6 +228,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .crew-row .who b { display: block; font-weight: 600; }
 .crew-row .who span { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
 .crew-row button { font: inherit; font-size: 12px; color: var(--wind-on); background: none; border: 0; cursor: pointer; padding: 4px; }
+.log-cta { justify-content: center; padding: 12px; font-size: 15px; border-radius: 12px; }
+.sess { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.sess b { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.sess .stars { color: var(--sun); letter-spacing: 1px; font-size: 15px; }
+.sess .cmp { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.sess button { font: inherit; font-size: 12px; color: var(--wind-on); background: none; border: 0; cursor: pointer; padding: 0; justify-self: end; }
+.calib-row { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: 13px; display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.star-pick { display: flex; gap: 4px; }
+.star-pick button { font-size: 30px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--line); padding: 0 2px; }
+.star-pick button.on { color: var(--sun); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: inherit; font-size: 13px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 11px; }
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -289,6 +302,7 @@ footer a { color: var(--accent); }
 
   <section class="stack" aria-labelledby="hw-h" data-page="home" hidden>
     <div><div class="label">Your home spot · next 7 days</div><h2 id="hw-h" style="font-size:24px">–</h2><p class="hint" id="hw-sub"></p></div>
+    <button class="btn primary-btn log-cta" type="button" id="log-open">How was your surf? Log a session</button>
     <div class="now-card" id="now-card"></div>
     <div class="hw-analysis" id="hw-analysis"></div>
     <div class="hw-days" id="hw-days"></div>
@@ -298,6 +312,12 @@ footer a { color: var(--accent); }
       <div class="scroll" id="hw-chart"></div>
     </div>
     <div class="links" id="hw-links"></div>
+    <div class="sbox" id="sessions-box">
+      <div class="shead"><div class="label">Your sessions</div><div class="range-btns"><button type="button" id="log-open2">Log a session</button><button type="button" id="log-export">Copy for Claude</button></div></div>
+      <div id="calib"></div>
+      <div id="sessions-list"></div>
+      <p class="hint" id="log-hint">Sessions are saved on this phone. Each one keeps what the app forecast for that spot and hour, so we can see where it's reading too big, too small, or rating spots wrong.</p>
+    </div>
   </section>
 
   <section class="stack" aria-labelledby="runs-h" data-page="runs" hidden>
@@ -417,6 +437,9 @@ footer a { color: var(--accent); }
     <h3>Good runs and notifications</h3>
     <p>A good day is one with enough swell and enough hours of offshore wind in the hours you choose. A run is that many good days in a row in one region. Your home spot has its own rules. Change them all in Settings. Each morning at about 6:40am you get one GitHub notification for anything new.</p>
 
+    <h3>Session log</h3>
+    <p>After a surf, log it on the Home tab: stars, how big it really was, the wind and your board. The app saves what it forecast for that spot and hour next to your rating. After 3 sessions at a spot it tells you whether it reads too big or too small there and offers a one-tap size fix. Tap Copy for Claude to share your log when you want the scoring tuned.</p>
+
     <h3>Spot settings and drive times</h3>
     <p>Each spot's offshore direction, best swell, size range and best tide started from surf guides. Change them under Adjust this spot if they don't match what you know. Drive times from Mount Maunganui are set for each spot. From other places they're rough estimates from distance.</p>
 
@@ -435,14 +458,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 45 · bottom tab bar</span>
+    <span>App version 46 · session log</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 45;
+  var APP_VERSION = 46;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1089,7 +1112,140 @@ footer a { color: var(--accent); }
     }
     document.getElementById("sheet-body").innerHTML = body;
   }
+  /* ---- Session log ---- */
+  var SESS_KEY = "surf-trip-sessions-v1";
+  var sessions = load(SESS_KEY) || [];
+  var SIZE_OPTS = [["flat", 0.2], ["0–1 ft", 0.7], ["0–2 ft", 1.1], ["1–2 ft", 1.5], ["1–3 ft", 2.0], ["2–3 ft", 2.6], ["2–4 ft", 3.1], ["3–5 ft", 4.0], ["4–6 ft", 5.0], ["6–8 ft", 7.0], ["8 ft +", 9.0]];
+  var WIND_OPTS = [["offshore", "Offshore"], ["light", "Light / glassy"], ["cross", "Cross-shore"], ["onshore", "Onshore"], ["messy", "Blown out"]];
+  var logDraft = null;
+  function sizeCentre(label) { var o = SIZE_OPTS.filter(function (x) { return x[0] === label; })[0]; return o ? o[1] : null; }
+  function saveSessions() { store(SESS_KEY, sessions); }
+  function todayKey() { return new Date().toLocaleDateString("en-CA", { timeZone: TZ }); }
+  function openLogSheet(sid) {
+    var nowH = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
+    logDraft = { spot: sid || alertCfg.home.spot, date: todayKey(), hour: Math.max(5, nowH - 2), stars: 0, size: null, wind: null, board: null, notes: "" };
+    renderLogSheet();
+    document.getElementById("sheet").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function renderLogSheet() {
+    var L = logDraft;
+    document.getElementById("sheet-title").textContent = "Log a session";
+    var dates = []; for (var i = 0; i < 7; i++) { var dt = new Date(Date.now() - i * 86400000); dates.push([dt.toLocaleDateString("en-CA", { timeZone: TZ }), i === 0 ? "Today" : i === 1 ? "Yesterday" : dt.toLocaleDateString("en-NZ", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" })]); }
+    var hours = []; for (var h = 4; h <= 21; h++) hours.push(h);
+    function chips(name, opts, cur) { return '<div class="chips" data-chip="' + name + '">' + opts.map(function (o) { return '<button type="button" data-v="' + esc(o[0]) + '" aria-pressed="' + (cur === o[0]) + '">' + esc(o[1] || o[0]) + "</button>"; }).join("") + "</div>"; }
+    document.getElementById("sheet-body").innerHTML = '<div class="sbox">' +
+      '<div class="form" style="margin-top:0"><label for="lg-spot">Spot<select id="lg-spot">' + REGIONS.map(function (r) { return '<optgroup label="' + esc(r) + '">' + allSpots().filter(function (x) { return x.region === r; }).map(function (x) { return '<option value="' + x.id + '"' + (x.id === L.spot ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</optgroup>"; }).join("") + "</select></label>" +
+      '<label for="lg-date">Day<select id="lg-date">' + dates.map(function (d) { return '<option value="' + d[0] + '"' + (d[0] === L.date ? " selected" : "") + ">" + esc(d[1]) + "</option>"; }).join("") + "</select></label>" +
+      '<label for="lg-hour">Paddled out around<select id="lg-hour">' + hours.map(function (x) { return '<option value="' + x + '"' + (x === L.hour ? " selected" : "") + ">" + clock(x) + "</option>"; }).join("") + "</select></label></div>" +
+      '<div><div class="label" style="margin-bottom:4px">How good was it?</div><div class="star-pick" id="lg-stars">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-star="' + n + '" class="' + (n <= L.stars ? "on" : "") + '" aria-label="' + n + ' stars">★</button>'; }).join("") + "</div></div>" +
+      '<div><div class="label" style="margin-bottom:4px">How big was it really?</div>' + chips("size", SIZE_OPTS.map(function (o) { return [o[0]]; }), L.size) + "</div>" +
+      '<div><div class="label" style="margin-bottom:4px">Wind</div>' + chips("wind", WIND_OPTS, L.wind) + "</div>" +
+      '<div><div class="label" style="margin-bottom:4px">Board</div>' + chips("board", [["longboard", "Longboard"], ["shortboard", "Shortboard"], ["other", "Other"]], L.board) + "</div>" +
+      '<label for="lg-notes" style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)">Notes (optional)<input id="lg-notes" type="text" maxlength="200" value="' + esc(L.notes) + '" placeholder="e.g. better on the push, closing out on the low" style="font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></label>' +
+      '<div class="form-actions" style="margin-top:0"><button class="btn primary-btn" type="button" id="lg-save">Save session</button><span class="hint" id="lg-msg"></span></div></div>';
+  }
+  function snapshotFromModel(s, date, hour) {
+    if (!model) return null;
+    var di = -1; model.days.forEach(function (d, i) { if (d.key === date) di = i; });
+    if (di < 0 || !model.spots[s.id][di]) return null;
+    var dd = model.spots[s.id][di], c = dd.hour(hour);
+    if (c.sh === null && c.wh === null) return null;
+    return { c: c, ti: tideInfo(dd.tides, hour) };
+  }
+  function snapshotFetch(s, date, hour) {
+    var t = date + "T" + (hour < 10 ? "0" : "") + hour + ":00";
+    var wq = "https://api.open-meteo.com/v1/forecast?" + qs({ latitude: s.lat, longitude: s.lon, hourly: "wind_speed_10m,wind_direction_10m,wind_gusts_10m", wind_speed_unit: "kn", timezone: TZ, past_days: 7, forecast_days: 1 });
+    function marineAt(km) {
+      var sp = seaPoint(s, km);
+      return getJSON("https://marine-api.open-meteo.com/v1/marine?" + qs({ latitude: sp.lat, longitude: sp.lon, hourly: MARINE_PARAMS.hourly, timezone: TZ, past_days: 7, forecast_days: 1 }));
+    }
+    return Promise.all([getJSON(wq), marineAt(6).then(function (m) { return hasSwell(m) ? m : marineAt(18); })]).then(function (r) {
+      var w = r[0].hourly, m = r[1].hourly, wi = w.time.indexOf(t), mi = m.time.indexOf(t);
+      if (mi < 0) return null;
+      function mv(k, i) { return m[k] && m[k][i] !== undefined ? m[k][i] : null; }
+      var c = { sh: mv("swell_wave_height", mi), sp: mv("swell_wave_period", mi), sd: mv("swell_wave_direction", mi), wh: mv("wave_height", mi), wp: mv("wave_period", mi), wd: mv("wave_direction", mi), wwh: mv("wind_wave_height", mi), wwp: mv("wind_wave_period", mi), wwd: mv("wind_wave_direction", mi),
+        ws: wi >= 0 ? w.wind_speed_10m[wi] : null, wdir: wi >= 0 ? w.wind_direction_10m[wi] : null, gust: wi >= 0 ? w.wind_gusts_10m[wi] : null };
+      var start = m.time.indexOf(date + "T00:00"), tides = [];
+      for (var k = 0; k < 24; k++) tides.push(start >= 0 ? mv("sea_level_height_msl", start + k) : null);
+      return { c: c, ti: tideInfo(tides, hour) };
+    });
+  }
+  function packForecast(s, snap) {
+    var c = snap.c, kind = windKind(s, c);
+    return { score: scoreSlot(s, c, snap.ti), ft: Math.round(surfFt(s, c) * 100) / 100, sh: c.sh, sp: c.sp, sd: c.sd, wh: c.wh, wwh: c.wwh, ws: c.ws, wdir: c.wdir, gust: c.gust, kind: kind, tide: snap.ti ? Math.round(snap.ti.level * 100) / 100 : null, rising: snap.ti ? snap.ti.rising : null, exp: s.exp || 1 };
+  }
+  function saveLog() {
+    var L = logDraft, msg = document.getElementById("lg-msg");
+    L.spot = document.getElementById("lg-spot").value; L.date = document.getElementById("lg-date").value; L.hour = +document.getElementById("lg-hour").value; L.notes = document.getElementById("lg-notes").value.trim();
+    if (!L.stars) { msg.textContent = "Give it a star rating first."; return; }
+    if (!L.size) { msg.textContent = "Pick how big it was."; return; }
+    var s = spotById(L.spot), entry = { id: Date.now(), spot: L.spot, date: L.date, hour: L.hour, stars: L.stars, size: L.size, wind: L.wind, board: L.board, notes: L.notes, fc: null };
+    msg.textContent = "Saving and looking up the forecast for that time…";
+    var snap = snapshotFromModel(s, L.date, L.hour);
+    var p = snap ? Promise.resolve(snap) : snapshotFetch(s, L.date, L.hour).catch(function () { return null; });
+    p.then(function (sn) {
+      if (sn) entry.fc = packForecast(s, sn);
+      sessions.unshift(entry); saveSessions();
+      closeSheet(); renderSessions();
+    });
+  }
+  document.getElementById("sheet").addEventListener("click", function (e) {
+    if (!logDraft || document.getElementById("sheet-title").textContent !== "Log a session") return;
+    var st = e.target.closest("[data-star]");
+    if (st) { logDraft.stars = +st.getAttribute("data-star"); document.querySelectorAll("#lg-stars button").forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-star") <= logDraft.stars); }); return; }
+    var ch = e.target.closest(".chips button");
+    if (ch) { var grp = ch.parentNode.getAttribute("data-chip"), v = ch.getAttribute("data-v"); logDraft[grp] = logDraft[grp] === v ? null : v; ch.parentNode.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === logDraft[grp] ? "true" : "false"); }); return; }
+    if (e.target.id === "lg-save") saveLog();
+  });
+  function calibration() {
+    var bySpot = {};
+    sessions.forEach(function (x) { if (x.fc && x.fc.ft !== null && sizeCentre(x.size) !== null) { (bySpot[x.spot] = bySpot[x.spot] || []).push(x); } });
+    return Object.keys(bySpot).map(function (id) {
+      var list = bySpot[id], s = spotById(id);
+      var actual = list.reduce(function (a, x) { return a + sizeCentre(x.size); }, 0) / list.length;
+      var pred = list.reduce(function (a, x) { return a + Math.max(0.2, x.fc.ft) / (x.fc.exp || 1); }, 0) / list.length;
+      var suggest = Math.max(0.5, Math.min(1.5, Math.round(actual / pred * 10) / 10));
+      var scoreAgree = list.filter(function (x) { return x.fc.score !== null; });
+      var scoreGap = scoreAgree.length ? Math.round(scoreAgree.reduce(function (a, x) { return a + (x.fc.score - x.stars * 20); }, 0) / scoreAgree.length) : null;
+      return { s: s, n: list.length, actual: actual, pred: pred * (s.exp || 1), suggest: suggest, current: s.exp || 1, scoreGap: scoreGap };
+    }).sort(function (a, b) { return b.n - a.n; });
+  }
+  function renderSessions() {
+    var el = document.getElementById("sessions-list");
+    if (!sessions.length) { el.innerHTML = '<p class="hint">No sessions yet. After your next surf, tap Log a session.</p>'; document.getElementById("calib").innerHTML = ""; return; }
+    el.innerHTML = sessions.slice(0, 30).map(function (x) {
+      var s = spotById(x.spot) || { name: x.spot }, d = new Date(x.date + "T12:00:00");
+      var when = d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" }) + " · " + clock(x.hour);
+      var cmp = x.fc ? "App said " + (x.fc.score !== null ? x.fc.score + "/100, " : "") + ftRange(x.fc.ft) + (x.fc.ws !== null ? ", " + Math.round(x.fc.ws) + " kts " + ({ offshore: "offshore", onshore: "onshore", cross: "cross-shore", light: "light" }[x.fc.kind] || "") : "") : "No forecast saved for this one";
+      return '<div class="sess"><span><b>' + esc(s.name) + '</b> <span class="hint">' + esc(when) + '</span></span><span class="stars" aria-label="' + x.stars + ' stars">' + "★★★★★".slice(0, x.stars) + '<span style="color:var(--line)">' + "★★★★★".slice(x.stars) + "</span></span>" +
+        '<span class="cmp">You said ' + esc(x.size) + (x.wind ? ", " + esc(x.wind) : "") + (x.board ? ", " + esc(x.board) : "") + (x.notes ? " · “" + esc(x.notes) + "”" : "") + "<br>" + esc(cmp) + '</span><button type="button" data-sess-del="' + x.id + '">Delete</button></div>';
+    }).join("");
+    var cal = calibration().filter(function (c) { return c.n >= 3; });
+    document.getElementById("calib").innerHTML = cal.map(function (c) {
+      var off = c.suggest / c.current;
+      var sizeTxt = Math.abs(off - 1) < 0.12 ? "Size estimate is about right (" + c.n + " sessions)." : "Reads " + (off > 1 ? "too small" : "too big") + " over " + c.n + " sessions. Suggested size adjust " + Math.round(c.suggest * 100) + "% (now " + Math.round(c.current * 100) + "%).";
+      var scoreTxt = c.scoreGap === null ? "" : Math.abs(c.scoreGap) < 12 ? " Scores match your ratings well." : " Scores run " + Math.abs(c.scoreGap) + " points " + (c.scoreGap > 0 ? "higher" : "lower") + " than your ratings.";
+      return '<div class="calib-row"><span><b>' + esc(c.s.name) + ":</b> " + esc(sizeTxt + scoreTxt) + "</span>" + (Math.abs(off - 1) >= 0.12 ? '<button class="btn" type="button" data-apply-exp="' + c.s.id + '" data-exp="' + c.suggest + '">Apply ' + Math.round(c.suggest * 100) + "%</button>" : "") + "</div>";
+    }).join("") || (sessions.length < 3 ? "" : '<p class="hint">Log 3 sessions at the same spot to see how accurate it is there.</p>');
+  }
+  document.getElementById("sessions-box").addEventListener("click", function (e) {
+    var del = e.target.closest("[data-sess-del]");
+    if (del) { var id = +del.getAttribute("data-sess-del"); sessions = sessions.filter(function (x) { return x.id !== id; }); saveSessions(); renderSessions(); return; }
+    var ap = e.target.closest("[data-apply-exp]");
+    if (ap) { var sid = ap.getAttribute("data-apply-exp"); overrides[sid] = overrides[sid] || {}; overrides[sid].exp = +ap.getAttribute("data-exp"); store(SETTINGS_KEY, overrides); if (model) { renderTrips(); renderSpot(); renderHomeTab(); } renderSessions(); return; }
+    if (e.target.id === "log-open2") { openLogSheet(); return; }
+    if (e.target.id === "log-export") {
+      var text = JSON.stringify(sessions.map(function (x) { var s = spotById(x.spot); return Object.assign({ spotName: s ? s.name : x.spot }, x); }), null, 1);
+      var hint = document.getElementById("log-hint");
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { hint.textContent = "Copied " + sessions.length + " sessions. Paste them into your chat with Claude to tune the app."; }, function () { hint.textContent = "Couldn't copy on this browser."; });
+    }
+  });
+  document.getElementById("log-open").addEventListener("click", function () { openLogSheet(); });
+  renderSessions();
+
   function openSheet(kind, sid) {
+    logDraft = null;
     sheetState.kind = kind; sheetState.sid = sid; sheetState.hours = 6;
     renderSheet();
     document.getElementById("sheet").hidden = false;
