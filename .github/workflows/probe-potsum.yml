@@ -1,14 +1,9 @@
 name: probe-potsum
 on: workflow_dispatch
-permissions:
-  contents: write
 jobs:
   p:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          mkdir out && cd out
-          curl -sSL -A "Mozilla/5.0" -o potsum.jpg "https://www.port-tauranga.co.nz/cameras/potsum.jpg?t=$(date +%s)"
-          git init -q -b probe-img && git add potsum.jpg
-          git -c user.name=probe -c user.email=probe@users.noreply.github.com commit -q -m "probe image"
-          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-img
+          curl -sS -D - -o body.json -H "Origin: https://tonyroycroftsenior.github.io" "https://raw.githubusercontent.com/${{ github.repository }}/harbour-data/harbour.json?t=$(date +%s)" | grep -i 'HTTP/\|access-control\|cache-control\|content-type\|expires\|x-cache'
+          echo "BODY $(head -c 200 body.json)"
