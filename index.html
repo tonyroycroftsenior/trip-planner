@@ -210,6 +210,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tide-box, .sun-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 0; }
 .tide-box .state { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
 .tide-box .row, .sun-box .row { font-size: 13px; }
+.live-line { margin: 8px 14px 0; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.45; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.live-line .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--wind-off); margin-top: 6px; }
+.live-line.stale .dot { background: var(--muted); }
+.live-scroll { max-height: 330px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.live-scroll thead th { position: sticky; top: 0; background: var(--surface); }
+.live-scroll tr:first-child td { font-weight: 600; }
 .now-foot { padding: 0 14px 12px; font-size: 12px; color: var(--muted); }
 .now-foot a { color: var(--accent); }
 .sheet-back { position: fixed; inset: 0; z-index: 20; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); background: rgba(40, 32, 24, 0.45); display: flex; align-items: flex-end; justify-content: center; padding: env(safe-area-inset-top, 0px) 0 0; }
@@ -453,6 +459,7 @@ footer a { color: var(--accent); }
     <p>Each spot's offshore direction, best swell, size range and best tide started from surf guides. Change them under Adjust this spot if they don't match what you know. Drive times from Mount Maunganui are set for each spot. From other places they're rough estimates from distance.</p>
 
     <h3>Credits</h3>
+    <p>For the Mount spots, the Live line and the last-3-hours tables on the Home tab are real measurements, not forecasts: the wave buoy at A-Beacon and the wind at Tug Berth, read off the Port of Tauranga harbour conditions page every few minutes between about 4am and 11pm. If a number on the page can't be read clearly it is left blank rather than guessed.</p>
     <p>Forecast data by Open-Meteo. Map data © OpenStreetMap contributors. Swellmap, Surfline, Surf-forecast, Windy and MetService links open their own sites; Days Offshore isn't connected to them.</p>
   </section>
 
@@ -467,14 +474,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 65 · tide now under home spot</span>
+    <span>App version 66 · live harbour readings, last 3 hours</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 65;
+  var APP_VERSION = 66;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1136,6 +1143,82 @@ footer a { color: var(--accent); }
     return '<div class="gauge"><svg viewBox="0 0 120 100" aria-hidden="true">' + g + '</svg><div class="glabel">' + esc(label) + "</div></div>";
   }
   function hhmm(iso) { if (!iso) return "–"; var h = +iso.slice(11, 13), m = iso.slice(14, 16); return (h % 12 || 12) + ":" + m + (h < 12 ? "am" : "pm"); }
+  /* ---- Live harbour readings. The Port of Tauranga only publishes these as text on a picture, so a GitHub
+     Action (harbour-log.yml) reads the numbers off it every few minutes and keeps the last 24 hours in
+     harbour.json on the harbour-data branch. Shown for the Mount spots only. ---- */
+  var harbour = null, harbourAt = 0;
+  var HARBOUR_URL = (function () {
+    var m = /^([^.]+)\.github\.io$/.exec(location.hostname), repo = location.pathname.split("/")[1];
+    return "https://raw.githubusercontent.com/" + (m ? m[1] : "tonyroycroftsenior") + "/" + (m && repo ? repo : "trip-planner") + "/harbour-data/harbour.json";
+  })();
+  function loadHarbour(force) {
+    if (!force && Date.now() - harbourAt < 90000) return Promise.resolve(false);
+    harbourAt = Date.now();
+    return fetch(HARBOUR_URL + "?t=" + Math.floor(Date.now() / 60000), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.readings && j.readings.length) { harbour = j; return true; } return false; })
+      .catch(function () { return false; });
+  }
+  function nzNowMin() {
+    var n = new Date();
+    return minutesOf(n.toLocaleDateString("en-CA", { timeZone: TZ }), n.toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }));
+  }
+  /* Readings from the last `mins` minutes, newest first */
+  function harbourRows(mins) {
+    if (!harbour) return [];
+    var now = nzNowMin();
+    return harbour.readings.map(function (r) { return { r: r, age: now - minutesOf(r.t.slice(0, 10), r.t.slice(11, 16)) }; })
+      .filter(function (x) { return x.age >= -10 && x.age <= mins; }).reverse();
+  }
+  function liveNum(v, dp) { return v === null || v === undefined ? "–" : v.toFixed(dp); }
+  function liveLineHTML() {
+    var rows = harbourRows(24 * 60); if (!rows.length) return "";
+    var x = rows[0], r = x.r, fresh = x.age <= 45, bits = [];
+    if (r.tug_wind !== null && r.tug_dir !== null) bits.push("wind " + r.tug_wind + " kts " + compass(r.tug_dir) + (r.tug_gust !== null ? ", gusts " + r.tug_gust : ""));
+    if (r.wave_sig !== null) bits.push("waves " + r.wave_sig.toFixed(1) + " m" + (r.wave_per !== null ? " at " + r.wave_per.toFixed(1) + " s" : ""));
+    if (r.water !== null && r.water !== undefined) bits.push("water " + r.water.toFixed(1) + "°");
+    var when = (r.t.slice(0, 10) !== new Date().toLocaleDateString("en-CA", { timeZone: TZ }) ? "yesterday " : "") + hm12(r.t.slice(11, 16));
+    return '<div class="live-line' + (fresh ? "" : " stale") + '"><span class="dot"></span><span><b>' + (fresh ? "Live " : "Last live reading ") + esc(when) + "</b> · " + esc(bits.join(" · ")) +
+      ' <span class="hint">· measured at Tug Berth and the A-Beacon buoy · tap a dial for the last 3 hours</span></span></div>';
+  }
+  /* The last 3 hours of measured readings, for the top of the wind and wave sheets */
+  function liveBoxHTML(kind, s) {
+    if (s.region !== "Mount Maunganui") return "";
+    var rows = harbourRows(180);
+    var waves = kind === "waves";
+    rows = rows.filter(function (x) { return waves ? x.r.wave_sig !== null || x.r.wave_max !== null : x.r.tug_wind !== null; });
+    var head = '<div class="shead"><div><div class="label">Measured · last 3 hours</div><b style="font-family:var(--font-display);font-size:18px">' + (waves ? "A-Beacon wave buoy" : "Tug Berth wind") + "</b></div>" +
+      (rows.length ? '<span class="hint">latest ' + esc(hm12(rows[0].r.t.slice(11, 16))) + "</span>" : "") + "</div>";
+    var src = 'Read off the <a href="https://www.port-tauranga.co.nz/operations/harbour-conditions/" target="_blank" rel="noopener" style="color:var(--accent)">Port of Tauranga harbour conditions</a> page every few minutes, 4am to 11pm.';
+    if (!rows.length) return '<div class="sbox">' + head + '<p class="hint" style="margin:0">No readings logged in the last 3 hours yet. ' + src + "</p></div>";
+    var r0 = rows[0].r, top, table;
+    if (waves) {
+      top = '<div class="strow" style="grid-template-columns:repeat(3,minmax(0,1fr))"><span class="v">' + liveNum(r0.wave_sig, 1) + '<small>m significant</small></span><span class="v">' + liveNum(r0.wave_max, 1) + '<small>m biggest</small></span><span class="v">' + liveNum(r0.wave_per, 1) + "<small>seconds</small></span></div>";
+      table = "<thead><tr><th>Time</th><th>Sig m</th><th>Max m</th><th>Period s</th></tr></thead><tbody>" + rows.map(function (x) {
+        var r = x.r; return "<tr><td>" + esc(hm12(r.t.slice(11, 16))) + '</td><td style="color:var(--accent)">' + liveNum(r.wave_sig, 1) + '</td><td style="color:var(--fair)">' + liveNum(r.wave_max, 1) + "</td><td>" + liveNum(r.wave_per, 1) + "</td></tr>";
+      }).join("") + "</tbody>";
+    } else {
+      var kc = function (r) { var k = windKind(s, { ws: r.tug_wind, wdir: r.tug_dir }); return { k: k, col: k === "offshore" ? "var(--wind-off)" : k === "onshore" ? "var(--wind-on)" : "var(--wind-other)" }; };
+      var k0 = kc(r0);
+      top = '<div class="strow" style="grid-template-columns:repeat(3,minmax(0,1fr))"><span class="v">' + liveNum(r0.tug_wind, 0) + '<small>kts wind</small></span><span class="v">' + liveNum(r0.tug_gust, 0) + '<small>kts gusts</small></span><span class="v" style="font-size:15px">' + esc(dirTxt(r0.tug_dir)) + '<small style="color:' + k0.col + ';font-weight:600">' + esc(k0.k === "cross" ? "cross-shore" : k0.k) + "</small></span></div>";
+      table = "<thead><tr><th>Time</th><th>Wind/Gust</th><th>Direction</th><th></th></tr></thead><tbody>" + rows.map(function (x) {
+        var r = x.r, c2 = kc(r);
+        return "<tr><td>" + esc(hm12(r.t.slice(11, 16))) + '</td><td style="color:' + c2.col + '">' + r.tug_wind + "/" + liveNum(r.tug_gust, 0) + "</td><td>" + (r.tug_dir !== null ? arrowIcon(r.tug_dir, c2.col) + " " + esc(compass(r.tug_dir) + " " + r.tug_dir + "°") : "–") + '</td><td style="color:' + c2.col + '">' + esc(c2.k === "cross" ? "cross-shore" : c2.k) + "</td></tr>";
+      }).join("") + "</tbody>";
+    }
+    var abLive = harbourRows(180).some(function (x) { return x.r.ab_gust; });
+    var note = waves ? "The buoy sits off the harbour entrance, so it measures the open-sea waves heading for the Mount beaches. Significant is the average of the biggest third of waves. "
+      : "Tug Berth is on the harbour side of the Mount, so it can read lighter than the beach in onshore winds. " + (abLive ? "" : "A-Beacon's own wind sensor is reading zero at the moment, so it's left out. ");
+    return '<div class="sbox">' + head + top + '<div class="htable live-scroll"><table>' + table + "</table></div>" + '<p class="hint" style="margin:0">' + note + src + "</p></div>";
+  }
+  function refreshLive(force) {
+    loadHarbour(force).then(function (changed) {
+      if (!changed || !model) return;
+      var hs = spotById(alertCfg.home.spot);
+      if (hs) renderNowCard(hs);
+      if (sheetState.live && !document.getElementById("sheet").hidden) { var sc = document.querySelector("#sheet .sheet"), top = sc ? sc.scrollTop : 0; renderSheet(); if (sc) sc.scrollTop = top; }
+    });
+  }
   function renderNowCard(s) {
     var el = document.getElementById("now-card");
     var nowH = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
@@ -1197,10 +1280,10 @@ footer a { color: var(--accent); }
       (useLinz ? '<div class="hint" style="font-size:11px">LINZ · ' + esc(dd.tidePort) + "</div>" : "") + "</div></div></div>";
     var sunBox = '<div class="sun-box"><div class="row">☀︎ Sunrise <b style="float:right">' + esc(hhmm(dd.wx.sunrise)) + '</b></div><div class="row">☾ Sunset <b style="float:right">' + esc(hhmm(dd.wx.sunset)) + "</b></div>" +
       '<div class="row">Water <b style="float:right">' + (c.sst !== null && c.sst !== undefined ? c.sst.toFixed(1) + "°C" : "–") + '</b></div><div class="row">Air <b style="float:right">' + (c.air !== null && c.air !== undefined ? c.air.toFixed(1) + "°C" : "–") + "</b></div></div>";
-    el.innerHTML = '<div class="now-title"><h3>Right now' + (isTauranga ? " · Tauranga" : "") + '</h3><span class="label">' + esc(clock(nowH)) + " · model forecast</span></div>" + map + gauges +
+    el.innerHTML = '<div class="now-title"><h3>Right now' + (isTauranga ? " · Tauranga" : "") + '</h3><span class="label">' + esc(clock(nowH)) + " · model forecast</span></div>" + liveLineHTML() + map + gauges +
       '<div class="now-bottom">' + tideBox + sunBox + "</div>" +
-      '<div class="now-foot">Tap the wind or the wave dials for the next 6 to 36 hours. Forecast for this hour from Open-Meteo, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide times and heights are LINZ official predictions for the nearest standard port, heights above chart datum like a tide table.' +
-      (isTauranga ? ' For live harbour readings see <a href="https://www.port-tauranga.co.nz/operations/harbour-conditions/" target="_blank" rel="noopener">Port of Tauranga harbour conditions ↗</a>.' : "") + "</div>";
+      '<div class="now-foot">Tap the wind or the wave dials for the next 6 to 36 hours. The dials are the Open-Meteo forecast for this hour, not a live reading. Wave height is the significant height out at sea; biggest waves are about 1.8× that. Tide times and heights are LINZ official predictions for the nearest standard port, heights above chart datum like a tide table.' +
+      (isTauranga ? ' The Live line and the 3-hour history are measured: they are read off the <a href="https://www.port-tauranga.co.nz/operations/harbour-conditions/" target="_blank" rel="noopener">Port of Tauranga harbour conditions ↗</a> page every few minutes.' : "") + "</div>";
   }
 
   /* ---- Detail sheets for the Right now card ---- */
@@ -1243,7 +1326,7 @@ footer a { color: var(--accent); }
       document.getElementById("sheet-title").textContent = "Waves · " + s.name;
       var tv = rows.map(function (r) { return r ? r.wh : null; }), sv = rows.map(function (r) { return r ? r.sh : null; }), wv = rows.map(function (r) { return r ? r.wwh : null; }), tt = rows.map(function (r) { return r ? r.h24 : null; });
       var pk = 0; tv.forEach(function (v, i) { if (v !== null && (tv[pk] === null || v > tv[pk])) pk = i; });
-      body = '<div class="sbox"><div class="shead"><div><div class="label">Marine forecast · this hour</div><b style="font-family:var(--font-display);font-size:18px">' + esc(nowLab) + "</b></div></div>" +
+      body = liveBoxHTML("waves", s) + '<div class="sbox"><div class="shead"><div><div class="label">Marine forecast · this hour</div><b style="font-family:var(--font-display);font-size:18px">' + esc(nowLab) + "</b></div></div>" +
         '<div class="strow"><span class="k" style="color:var(--accent)">Total waves</span><span class="v">' + hv(c.wh) + "<small>metres</small></span><span class=\"v\">" + hv(c.wp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wd)) + "<small>from</small></span></div>" +
         '<div class="strow"><span class="k" style="color:var(--sun)">Swell</span><span class="v">' + hv(c.sh) + "<small>metres</small></span><span class=\"v\">" + hv(c.sp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.sd)) + "<small>from</small></span></div>" +
         '<div class="strow"><span class="k" style="color:var(--rain)">Wind waves</span><span class="v">' + hv(c.wwh) + "<small>metres</small></span><span class=\"v\">" + hv(c.wwp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wwd)) + "<small>from</small></span></div>" +
@@ -1262,7 +1345,7 @@ footer a { color: var(--accent); }
       var arrows = rows.map(function (r) { if (!r || r.wdir === null) return null; var k = windKind(s, r); return { dir: r.wdir, col: k === "offshore" ? "var(--wind-off)" : k === "onshore" ? "var(--wind-on)" : "var(--wind-other)" }; });
       var pk2 = 0; gs.forEach(function (v, i) { if (v !== null && (gs[pk2] === null || v > gs[pk2])) pk2 = i; });
       var k0 = windKind(s, c), kcol = k0 === "offshore" ? "var(--wind-off)" : k0 === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
-      body = '<div class="sbox"><div class="shead"><div><div class="label">Wind forecast · this hour</div><b style="font-family:var(--font-display);font-size:18px">' + esc(nowLab) + "</b></div></div>" +
+      body = liveBoxHTML("wind", s) + '<div class="sbox"><div class="shead"><div><div class="label">Wind forecast · this hour</div><b style="font-family:var(--font-display);font-size:18px">' + esc(nowLab) + "</b></div></div>" +
         '<div class="strow" style="grid-template-columns:repeat(3,minmax(0,1fr))"><span class="v">' + (c.ws === null ? "–" : Math.round(c.ws)) + "<small>kts wind</small></span><span class=\"v\">" + (c.gust === null ? "–" : Math.round(c.gust)) + "<small>kts gusts</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wdir)) + '<small style="color:' + kcol + ';font-weight:600">' + esc({ offshore: "offshore", onshore: "onshore", cross: "cross-shore", light: "light" }[k0] || "") + "</small></span></div>" +
         '<div class="slegend"><span><i style="border-color:var(--fg)"></i>Wind</span><span><i style="border-color:var(--fair);border-top-style:dashed"></i>Gusts</span><span>Arrows: green offshore, orange cross-shore or light, red onshore</span></div>' +
         lineChart([{ v: ws, t: tt2, col: "var(--fg)", fill: true }, { v: gs, t: tt2, col: "var(--fair)", dash: "7 4" }], n, "Wind (kts)", 10, arrows) +
@@ -1299,6 +1382,7 @@ footer a { color: var(--accent); }
     document.body.style.overflow = "hidden";
   }
   function renderLogSheet() {
+    sheetState.live = false;
     var L = logDraft;
     document.getElementById("sheet-title").textContent = "Log a session";
     var dates = []; for (var i = 0; i < 7; i++) { var dt = new Date(Date.now() - i * 86400000); dates.push([dt.toLocaleDateString("en-CA", { timeZone: TZ }), i === 0 ? "Today" : i === 1 ? "Yesterday" : dt.toLocaleDateString("en-NZ", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" })]); }
@@ -1416,8 +1500,9 @@ footer a { color: var(--accent); }
 
   function openSheet(kind, sid) {
     logDraft = null;
-    sheetState.kind = kind; sheetState.sid = sid; sheetState.hours = 6;
+    sheetState.kind = kind; sheetState.sid = sid; sheetState.hours = 6; sheetState.live = true;
     renderSheet();
+    refreshLive(false);
     document.getElementById("sheet").hidden = false;
     document.body.style.overflow = "hidden";
   }
@@ -1427,7 +1512,7 @@ footer a { color: var(--accent); }
     if (g("lg-spot")) logDraft.spot = g("lg-spot"); if (g("lg-date")) logDraft.date = g("lg-date"); if (g("lg-hour")) logDraft.hour = +g("lg-hour"); if (g("lg-notes") !== null) logDraft.notes = g("lg-notes");
   }
   function closeSheet() {
-    rememberDraft(); document.getElementById("sheet").hidden = true; document.body.style.overflow = ""; }
+    rememberDraft(); sheetState.live = false; document.getElementById("sheet").hidden = true; document.body.style.overflow = ""; }
   document.getElementById("sheet-close").addEventListener("click", closeSheet);
   document.getElementById("sheet").addEventListener("click", function (e) {
     if (e.target.id === "sheet") { closeSheet(); return; }
@@ -1993,10 +2078,10 @@ footer a { color: var(--accent); }
     if (cs) { e.preventDefault(); openCrewFor(cs.getAttribute("data-crew-spot")); return; }
     var t = e.target.closest("button");
     if (!t || !model) {
-      if (t && t.id === "refresh") loadForecast(true);
+      if (t && t.id === "refresh") { loadForecast(true); refreshLive(true); }
       return;
     }
-    if (t.id === "refresh") { loadForecast(true); return; }
+    if (t.id === "refresh") { loadForecast(true); refreshLive(true); return; }
     if (t.id === "reset-spot") {
       delete overrides[state.spot]; store(SETTINGS_KEY, overrides);
       renderTrips(); renderSpot(); return;
@@ -2228,6 +2313,10 @@ footer a { color: var(--accent); }
 
   renderOrigin();
   loadForecast(false);
+  /* Live harbour readings: on opening, when coming back to the app, and every 3 minutes while it's on screen */
+  refreshLive(true);
+  setInterval(function () { if (!document.hidden) refreshLive(false); }, 180000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshLive(false); });
 })();
 </script>
 </body>
