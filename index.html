@@ -464,14 +464,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 60 · surf size recalibrated (Tay St 11 Nov)</span>
+    <span>App version 61 · fresh forecast after size fix</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 60;
+  var APP_VERSION = 61;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -484,7 +484,7 @@ footer a { color: var(--accent); }
   var NDAYS = 14;
   var SLOT_HOURS = [6, 9, 12, 15, 18];
   var SLOT_LAB = ["6a", "9a", "12p", "3p", "6p"];
-  var CACHE_KEY = "surf-trip-forecast-v4";
+  var CACHE_KEY = "surf-trip-forecast-v5";
   var SETTINGS_KEY = "surf-trip-spot-settings-v1";
   var CACHE_MAX_AGE = 60 * 60 * 1000;
 
