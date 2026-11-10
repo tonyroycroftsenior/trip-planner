@@ -139,7 +139,7 @@ h2 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin
 .notif-group .form { margin-top: 8px; }
 .notif-group.off .form { opacity: 0.45; pointer-events: none; }
 .tabs-nav { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
-.tab { flex: 1 1 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-radius: 9px; padding: 9px 6px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.tab { flex: 1 1 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-radius: 9px; padding: 9px 6px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--surface); }
 .tab-count { font-family: var(--font-data); font-size: 11px; font-weight: 500; background: var(--score-good); color: var(--surface); border-radius: 999px; padding: 0 7px; line-height: 18px; }
 .tab-count:empty { display: none; }
@@ -156,6 +156,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hw-day .meta { font-size: 12px; color: var(--muted); grid-column: 3 / -1; }
 .hw-day .score-badge { font-family: var(--font-data); font-size: 14px; font-weight: 500; border-radius: 6px; padding: 2px 8px; color: var(--surface); }
 .hw-day .wxs { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-align: center; }
+.about { max-width: 68ch; }
+.about h3 { font-family: var(--font-display); font-weight: 600; font-size: 17px; margin: 10px 0 0; }
+.about p, .about ul { margin: 0; font-size: 15px; }
+.about ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.about a { color: var(--accent); }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
 .links a { font-size: 13px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
 .links a:hover { border-color: var(--accent); }
@@ -187,6 +192,7 @@ footer a { color: var(--accent); }
     <button type="button" role="tab" class="tab" data-tab="home" aria-selected="false">Home</button>
     <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Runs</button>
     <button type="button" role="tab" class="tab" data-tab="settings" aria-selected="false">Settings</button>
+    <button type="button" role="tab" class="tab" data-tab="about" aria-selected="false">About</button>
   </nav>
 
   <div class="status">
@@ -275,18 +281,60 @@ footer a { color: var(--accent); }
     </details>
   </section>
 
+  <section class="stack about" aria-labelledby="about-h" data-page="about" hidden>
+    <h2 id="about-h" style="font-size:24px">About Days Offshore</h2>
+    <p>Days Offshore helps you plan surf trips around your days off. Pick the days you're free and it ranks each region by how good the waves look, shows the best spot each day, and gives you a full swell, wind, tide and weather forecast for every spot.</p>
+
+    <h3>Where the forecast comes from</h3>
+    <p>Swell, wind waves, wind, tide and weather all come from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, which combines global forecast models. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times are reliable, but tide heights near the coast are approximate.</p>
+
+    <h3>Wave score (0–100)</h3>
+    <p>Each spot gets a score at 6am, 9am, 12pm, 3pm and 6pm. It's built from three parts:</p>
+    <ul>
+      <li><b>Wind, 45%.</b> Offshore scores best. The further the wind swings onshore, and the stronger it blows, the lower it goes. Light wind (5 kts or less) counts as clean. Very strong wind over 25 kts and gusty wind also lose points.</li>
+      <li><b>Size, 35%.</b> Full marks when the swell is inside the range the spot handles well (set for each spot). Smaller or bigger than that loses points.</li>
+      <li><b>Period, 20%.</b> Longer period swell scores higher: about 6 seconds is weak, 13 seconds or more is full marks.</li>
+    </ul>
+    <p>That total is then multiplied by two checks: <b>swell direction</b> (how close the swell is to the angle the spot likes) and <b>tide</b> (only for spots that prefer a certain tide). A swell from the wrong direction can cut the score to about a third.</p>
+    <p>A region's wave score is the average, over your chosen days, of the best session at the best spot in that region each day. Regions are ranked on waves only.</p>
+
+    <h3>Weather score (0–100)</h3>
+    <p>Shown separately and doesn't change the ranking. Half comes from how much rain is forecast, a fifth from the chance of rain, and the rest from temperature (18–26°C is ideal). Showers, rain and thunder then pull the score down even when little rain is forecast.</p>
+
+    <h3>Colours</h3>
+    <p><b style="color:var(--score-good)">Green</b> is 80 and up, <b style="color:var(--score-ok)">orange</b> is 60 to 79, and <b style="color:var(--score-bad)">red</b> is under 60. Wind arrows use the same colours: green offshore, orange cross-shore or light, red onshore.</p>
+
+    <h3>Surf height in feet</h3>
+    <p>An estimate of the breaking wave height. It combines the swell and the local wind waves, allows for wave period (short period waves break smaller) and for how directly each one hits the beach, then adjusts for how exposed the spot is. It's calibrated against Surfline at Tay Street. If a spot reads too big or small, change Wave size adjust under Adjust this spot.</p>
+
+    <h3>Which board</h3>
+    <p>Longboard for 0–1 and 0–2 ft. Either board for 1–2 ft. Shortboard once it goes over 2 ft.</p>
+
+    <h3>Wind words</h3>
+    <p><b>Offshore</b> means the wind is within 50° of the spot's offshore direction. <b>Onshore</b> means it's blowing in from the sea side. Anything between is <b>cross-shore</b>, and 5 kts or less is <b>light</b>.</p>
+
+    <h3>Good runs and notifications</h3>
+    <p>A good day is one with enough swell and enough hours of offshore wind in the hours you choose. A run is that many good days in a row in one region. Your home spot has its own rules. Change them all in Settings. Each morning at about 6:40am you get one GitHub notification for anything new.</p>
+
+    <h3>Spot settings and drive times</h3>
+    <p>Each spot's offshore direction, best swell, size range and best tide started from surf guides. Change them under Adjust this spot if they don't match what you know. Drive times from Mount Maunganui are set for each spot. From other places they're rough estimates from distance.</p>
+
+    <h3>Credits</h3>
+    <p>Forecast data by Open-Meteo. Map data © OpenStreetMap contributors. Swellmap, Surfline, Windy and MetService links open their own sites; Days Offshore isn't connected to them.</p>
+  </section>
+
   <footer>
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 37 · no count on the Runs tab</span>
+    <span>App version 38 · About tab</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 37;
+  var APP_VERSION = 38;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1427,7 +1475,7 @@ footer a { color: var(--accent); }
   }).catch(function () {});
 
   renderAlertForm();
-  var PAGES = ["plan", "home", "runs", "settings"];
+  var PAGES = ["plan", "home", "runs", "settings", "about"];
   function showPage(name, noScroll) {
     if (PAGES.indexOf(name) < 0) name = "plan";
     document.querySelectorAll("[data-page]").forEach(function (el) { el.hidden = el.getAttribute("data-page") !== name; });
