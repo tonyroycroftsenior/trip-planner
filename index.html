@@ -185,7 +185,7 @@ footer a { color: var(--accent); }
   <nav class="tabs-nav" role="tablist" aria-label="Pages">
     <button type="button" role="tab" class="tab" data-tab="plan" aria-selected="true">Plan</button>
     <button type="button" role="tab" class="tab" data-tab="home" aria-selected="false">Home</button>
-    <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Runs <span class="tab-count" id="runs-count"></span></button>
+    <button type="button" role="tab" class="tab" data-tab="runs" aria-selected="false">Runs</button>
     <button type="button" role="tab" class="tab" data-tab="settings" aria-selected="false">Settings</button>
   </nav>
 
@@ -279,14 +279,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 36 · times shown as 9am</span>
+    <span>App version 37 · no count on the Runs tab</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 36;
+  var APP_VERSION = 37;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -846,7 +846,6 @@ footer a { color: var(--accent); }
 
   function renderRuns() {
     var runs = goodRuns(), el = document.getElementById("runs");
-    document.getElementById("runs-count").textContent = runs.length ? runs.length : "";
     if (!runs.length) { el.innerHTML = '<p class="hint">No runs of ' + alertCfg.trips.minDays + ' or more good days in the forecast right now.</p>'; return; }
     el.innerHTML = runs.map(function (r) {
       var a = model.days[r.days[0].d], b = model.days[r.days[r.days.length - 1].d];
