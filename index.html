@@ -279,14 +279,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 35 · longboard only up to 2 ft</span>
+    <span>App version 36 · times shown as 9am</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 35;
+  var APP_VERSION = 36;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -815,7 +815,7 @@ footer a { color: var(--accent); }
       var badge = x.best ? '<span class="score-badge" style="background:' + TIER_FILL[tier(x.best.score)] + '">' + x.best.score + "</span>" : "";
       return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
         '<span class="wxs">' + (wx.tmax !== null ? miniSky(kind) + Math.round(wx.tmax) + "°" : "") + "</span>" +
-        '<span><span class="ft">' + (x.best ? esc(ftRange(x.maxFt)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best ' + esc(x.best.lab) + " · " + board(x.best.ft) + "</span>" : "") + "</span>" + badge +
+        '<span><span class="ft">' + (x.best ? esc(ftRange(x.best.ft)) : "–") + "</span>" + (x.best ? ' <span class="hint" style="font-size:12px">best at ' + esc(clock(x.best.hour)) + " · " + board(x.best.ft) + (ftRange(x.maxFt) !== ftRange(x.best.ft) ? " · up to " + esc(ftRange(x.maxFt)) + " during the day" : "") + "</span>" : "") + "</span>" + badge +
         '<span class="meta">' + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
     }).join("");
     /* Chart + conditions */
@@ -867,7 +867,7 @@ footer a { color: var(--accent); }
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
-        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + x.pick.slot.lab + " (" + x.pick.slot.score + ") · " + ftRange(x.pick.slot.ft) + " · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.ft) + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
+        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + clock(x.pick.slot.hour) + " (" + x.pick.slot.score + ") · " + ftRange(x.pick.slot.ft) + " · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.ft) + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
       });
       html += "</ul></div>";
     }
@@ -1076,7 +1076,7 @@ footer a { color: var(--accent); }
         if (x.h !== null) {
           var ty2 = x.score !== null ? tier(x.score) : "poor";
           var top = yOf(x.h);
-          var tip = day.wk + " " + x.lab + ": " + x.h.toFixed(1) + " m, " + (x.p !== null ? Math.round(x.p) + " s" : "") + (x.d !== null ? " from " + compass(x.d) : "") +
+          var tip = day.wk + " " + clock(x.hour) + ": " + x.h.toFixed(1) + " m, " + (x.p !== null ? Math.round(x.p) + " s" : "") + (x.d !== null ? " from " + compass(x.d) : "") +
             (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "") + ", " + board(x.ft);
           g += '<rect x="' + (sx + 4) + '" y="' + top + '" width="' + (SW - 8) + '" height="' + Math.max(1, yOf(0) - top) + '" rx="2" style="fill:' + TIER_FILL[ty2] + '"><title>' + esc(tip) + "</title></rect>";
           g += txt(scx, top - 4, x.h.toFixed(1), { fill: "var(--fg)", size: 9 });
@@ -1183,7 +1183,7 @@ footer a { color: var(--accent); }
     var windCol = x.kind === "offshore" ? "var(--wind-off)" : x.kind === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
     var windTxt = c.ws === null ? "no wind data" : Math.round(c.ws) + " kts " + compass(c.wdir) + (c.gust !== null ? ", gusts " + Math.round(c.gust) : "");
     var kindWord = { offshore: "Offshore", onshore: "Onshore", cross: "Cross-shore", light: "Light", unknown: "" }[x.kind];
-    el.innerHTML = '<div class="facts"><div class="when">' + esc(day.wk + " " + day.d + " " + day.m + " · " + x.lab) + " · tap the chart to change</div>" +
+    el.innerHTML = '<div class="facts"><div class="when">' + esc(day.wk + " " + day.d + " " + day.m + " · " + clock(x.hour)) + " · tap the chart to change</div>" +
       '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + " · " + board(x.ft)) + "</div></div>" +
       '<div><div class="label">Wind</div><div class="big" style="font-size:20px">' + esc(windTxt) + '</div><div class="sub2" style="color:' + windCol + ';font-weight:600">' + esc(kindWord) + "</div></div>" +
       '<div><div class="label">Swell</div><div class="lines">' + line("var(--sun)", c.sh, c.sp, c.sd, "swell") + line("var(--accent)", c.wwh, c.wwp, c.wwd, "wind waves") + "</div></div></div>" +
@@ -1202,11 +1202,11 @@ footer a { color: var(--accent); }
     var x = slotsFor(s.id, d)[k], day = model.days[d];
     var el = document.getElementById("why");
     var p = scoreParts(s, x.c, x.ti);
-    if (!p) { el.innerHTML = '<span class="hint">No swell data for ' + esc(day.wk + " " + x.lab) + ".</span>"; return; }
+    if (!p) { el.innerHTML = '<span class="hint">No swell data for ' + esc(day.wk + " " + clock(x.hour)) + ".</span>"; return; }
     function row(label, val, f) { return '<div class="why-row' + (f < 0.6 ? " weak" : "") + '"><span>' + esc(label) + "</span><span>" + esc(val) + "</span></div>"; }
     var windTxt = x.c.ws === null ? "no wind data" : Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" + (x.c.gust !== null ? ", gusts " + Math.round(x.c.gust) : "");
     var tideTxt = x.ti ? (x.ti.level < 0.33 ? "low" : x.ti.level > 0.67 ? "high" : "mid") + (x.ti.rising === null ? "" : x.ti.rising ? ", rising" : ", falling") : "no tide data";
-    el.innerHTML = '<div class="why-head"><span>' + esc(day.wk + " " + day.d + " · " + x.lab) + "</span><span>score " + p.score + "</span></div>" +
+    el.innerHTML = '<div class="why-head"><span>' + esc(day.wk + " " + day.d + " · " + clock(x.hour)) + "</span><span>score " + p.score + "</span></div>" +
       '<div class="why-row"><span>Surf about ' + esc(ftRange(x.ft)) + " (" + esc(ftWords(x.ft)) + ')</span><span></span></div>' +
       row("Swell size " + p.h.toFixed(1) + " m (spot likes " + s.lo + " to " + s.hi + " m)", pct(p.size), p.size) +
       row("Period " + Math.round(p.per) + " s", pct(p.period), p.period) +
