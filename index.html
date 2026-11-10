@@ -432,7 +432,7 @@ footer a { color: var(--accent); }
     <p>Longboard for 0–1 and 0–2 ft. Either board for 1–2 ft. Shortboard once it goes over 2 ft.</p>
 
     <h3>Wind words</h3>
-    <p><b>Offshore</b> means the wind is within 30° of the spot's offshore direction. <b>Onshore</b> means it's blowing in from the sea side. Anything between is <b>cross-shore</b>, and 5 kts or less is <b>light</b>.</p>
+    <p><b>Offshore</b> means the wind is within 40° of the spot's offshore direction. <b>Onshore</b> means it's blowing in from the sea side. Anything between is <b>cross-shore</b>, and 5 kts or less is <b>light</b>.</p>
 
     <h3>Good runs and notifications</h3>
     <p>A good day is one with enough swell and enough hours of offshore wind in the hours you choose. A run is that many good days in a row in one region. Your home spot has its own rules. Change them all in Settings. Each morning at about 6:40am you get one GitHub notification for anything new.</p>
@@ -458,14 +458,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide heights near the coast are approximate; use the timing, not the exact height.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 48 · angled swell reads smaller</span>
+    <span>App version 49 · offshore within 40°</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 48;
+  var APP_VERSION = 49;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -733,7 +733,7 @@ footer a { color: var(--accent); }
     if (c.ws === null || c.wdir === null) return "unknown";
     if (c.ws <= 5) return "light";
     var d = angDiff(c.wdir, s.offshore);
-    return d <= 30 ? "offshore" : (d >= 130 ? "onshore" : "cross");
+    return d <= 40 ? "offshore" : (d >= 130 ? "onshore" : "cross");
   }
 
   function scoreSlot(s, c, ti) { var p = scoreParts(s, c, ti); return p ? p.score : null; }
@@ -874,7 +874,7 @@ footer a { color: var(--accent); }
     var dd = model.spots[s.id][d], best = null, cur = null;
     for (var h = A.startHour; h <= A.endHour; h++) {
       var c = dd.hour(h), sw = c.sh !== null ? c.sh : c.wh;
-      var ok = sw !== null && sw >= A.minSwell && c.ws !== null && c.wdir !== null && ((A.countLightWind && c.ws <= 5) || angDiff(c.wdir, s.offshore) <= 30);
+      var ok = sw !== null && sw >= A.minSwell && c.ws !== null && c.wdir !== null && ((A.countLightWind && c.ws <= 5) || angDiff(c.wdir, s.offshore) <= 40);
       if (ok) {
         if (!cur) cur = { start: h, end: h, sw: [], ws: [] };
         cur.end = h; cur.sw.push(sw); cur.ws.push(c.ws);
@@ -1649,7 +1649,7 @@ footer a { color: var(--accent); }
   }
   function compassSVG(s, x) {
     var cx = 100, cy = 100, R = 78, g = "";
-    g += wedge(cx, cy, R, s.offshore, 30, "var(--score-good)", 0.22);
+    g += wedge(cx, cy, R, s.offshore, 40, "var(--score-good)", 0.22);
     g += wedge(cx, cy, R, (s.offshore + 180) % 360, 45, "var(--score-bad)", 0.18);
     g += '<circle cx="100" cy="100" r="' + R + '" style="fill:none;stroke:var(--fg);stroke-width:1.5;opacity:0.75"/>';
     g += '<circle cx="100" cy="100" r="' + (R / 2) + '" style="fill:none;stroke:var(--fg);stroke-width:0.8;stroke-dasharray:3 3;opacity:0.5"/>';
