@@ -32,15 +32,32 @@ async function getPoints(base, params, pts) {
   const j = await r.json();
   return Array.isArray(j) ? j : [j];
 }
+const WAVE_MODELS = ["meteofrance_wave", "ecmwf_wam", "ncep_gfswave025", "dwd_gwam"];
+// Average the per-model columns into wave_height / swell_wave_height (zeros from land cells are dropped)
+function merge(m) {
+  const H = m?.hourly; if (!H || H.wave_height) return m;
+  const n = (H.time || []).length, wave = [], swell = [];
+  for (let i = 0; i < n; i++) {
+    const t = [], c = [], s = [];
+    for (const md of WAVE_MODELS) {
+      const h = H["wave_height_" + md]?.[i]; if (h == null || h <= 0.02) continue;
+      t.push(h); const sh = H["swell_wave_height_" + md]?.[i]; if (sh != null) { c.push(h); s.push(sh); }
+    }
+    const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const T = avg(t), C = avg(c), k = T != null && C ? Math.min(1.6, Math.max(0.6, T / C)) : 1;
+    wave.push(T); swell.push(s.length ? avg(s) * k : null);
+  }
+  H.wave_height = wave; H.swell_wave_height = swell; return m;
+}
 const hasSwell = m => (m?.hourly?.swell_wave_height || m?.hourly?.wave_height || []).some(v => v !== null && v !== undefined);
 
 const weather = await getPoints("https://api.open-meteo.com/v1/forecast",
   { hourly: "wind_speed_10m,wind_direction_10m", wind_speed_unit: "kn", timezone: TZ, forecast_days: DAYS }, SPOTS);
-const marineParams = { hourly: "swell_wave_height,wave_height", timezone: TZ, forecast_days: DAYS };
-const marine = await getPoints("https://marine-api.open-meteo.com/v1/marine", marineParams, SPOTS.map(s => seaPoint(s, 6)));
+const marineParams = { hourly: "swell_wave_height,wave_height", models: WAVE_MODELS.join(","), timezone: TZ, forecast_days: DAYS };
+const marine = (await getPoints("https://marine-api.open-meteo.com/v1/marine", marineParams, SPOTS.map(s => seaPoint(s, 6)))).map(merge);
 const missing = marine.map((m, i) => hasSwell(m) ? -1 : i).filter(i => i >= 0);
 if (missing.length) {
-  const again = await getPoints("https://marine-api.open-meteo.com/v1/marine", marineParams, missing.map(i => seaPoint(SPOTS[i], 18)));
+  const again = (await getPoints("https://marine-api.open-meteo.com/v1/marine", marineParams, missing.map(i => seaPoint(SPOTS[i], 18)))).map(merge);
   missing.forEach((i, k) => { if (hasSwell(again[k])) marine[i] = again[k]; });
 }
 

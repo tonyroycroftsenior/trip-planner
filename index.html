@@ -407,7 +407,7 @@ footer a { color: var(--accent); }
     <p>Days Offshore helps you plan surf trips around your days off. Pick the days you're free and it ranks each region by how good the waves look, shows the best spot each day, and gives you a full swell, wind, tide and weather forecast for every spot.</p>
 
     <h3>Where the forecast comes from</h3>
-    <p>Swell, wind waves, wind, tide and weather all come from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, which combines global forecast models. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times and heights are LINZ's official predictions for the nearest standard port (Tauranga, Onehunga, Port Taranaki or Gisborne), so they match printed tide tables. Spots away from the port can be up to about half an hour different.</p>
+    <p>Swell and wave heights are the average of four free global wave models (Météo-France, ECMWF, NOAA GFS and DWD), fetched through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. When the models disagree a lot, the Waves panel says so. Wind and weather also come from Open-Meteo. The app fetches a fresh forecast at most once an hour, or when you tap Refresh forecast. Forecasts more than about a week out are rough, so those days have dashed edges. Tide times and heights are LINZ's official predictions for the nearest standard port (Tauranga, Onehunga, Port Taranaki or Gisborne), so they match printed tide tables. Spots away from the port can be up to about half an hour different.</p>
 
     <h3>Wave score (0–100)</h3>
     <p>Each spot gets a score at 6am, 9am, 12pm, 3pm and 6pm. It's built from three parts:</p>
@@ -458,14 +458,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 50 · LINZ tides</span>
+    <span>App version 51 · four-model wave average</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 50;
+  var APP_VERSION = 51;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -478,7 +478,7 @@ footer a { color: var(--accent); }
   var NDAYS = 14;
   var SLOT_HOURS = [6, 9, 12, 15, 18];
   var SLOT_LAB = ["6a", "9a", "12p", "3p", "6p"];
-  var CACHE_KEY = "surf-trip-forecast-v3";
+  var CACHE_KEY = "surf-trip-forecast-v4";
   var SETTINGS_KEY = "surf-trip-spot-settings-v1";
   var CACHE_MAX_AGE = 60 * 60 * 1000;
 
@@ -610,10 +610,55 @@ footer a { color: var(--accent); }
     daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset",
     wind_speed_unit: "kn", timezone: TZ, forecast_days: NDAYS
   };
+  /* Wave ensemble: every free global wave model that covers NZ, averaged hour by hour */
+  var WAVE_MODELS = ["meteofrance_wave", "ecmwf_wam", "ncep_gfswave025", "dwd_gwam"];
+  var WAVE_MODEL_NAMES = { meteofrance_wave: "Météo-France", ecmwf_wam: "ECMWF", ncep_gfswave025: "NOAA GFS", dwd_gwam: "DWD" };
   var MARINE_PARAMS = {
-    hourly: "swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction,sea_level_height_msl,sea_surface_temperature",
+    hourly: "swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction",
+    models: WAVE_MODELS.join(","),
     timezone: TZ, forecast_days: NDAYS
   };
+  var SEA_PARAMS = { hourly: "sea_level_height_msl,sea_surface_temperature", timezone: TZ, forecast_days: NDAYS };
+  function circMean(ds) {
+    var x = 0, y = 0; ds.forEach(function (d) { x += Math.cos(d * Math.PI / 180); y += Math.sin(d * Math.PI / 180); });
+    return Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360);
+  }
+  /* Turn per-model columns (wave_height_ecmwf_wam ...) into one averaged set. A model whose grid cell is on land
+     reports zeros near the coast, so zero heights are dropped. ECMWF only gives total height, so the swell and
+     wind-wave parts from the other models are scaled to match the all-model average total. */
+  function ensembleMerge(m) {
+    if (!m || !m.hourly || m.hourly.wave_height) return m;
+    var H = m.hourly, n = (H.time || []).length;
+    function col(v, md) { return H[v + "_" + md] || []; }
+    var out = {}; ["wave_height", "wave_period", "wave_direction", "swell_wave_height", "swell_wave_period", "swell_wave_direction", "wind_wave_height", "wind_wave_period", "wind_wave_direction", "wave_height_min", "wave_height_max", "model_count"].forEach(function (k) { out[k] = []; });
+    for (var i = 0; i < n; i++) {
+      var tot = [], totDir = [], totPer = [], comp = [], sw = { h: [], p: [], d: [] }, ww = { h: [], p: [], d: [] };
+      WAVE_MODELS.forEach(function (md) {
+        var h = col("wave_height", md)[i];
+        if (h === null || h === undefined || h <= 0.02) return;
+        tot.push(h);
+        var wd = col("wave_direction", md)[i], wp = col("wave_period", md)[i];
+        if (wd !== null && wd !== undefined) totDir.push(wd);
+        if (wp) totPer.push(wp);
+        var sh = col("swell_wave_height", md)[i];
+        if (sh !== null && sh !== undefined) {
+          comp.push(h);
+          sw.h.push(sh); if (col("swell_wave_period", md)[i]) sw.p.push(col("swell_wave_period", md)[i]); if (col("swell_wave_direction", md)[i] !== null && col("swell_wave_direction", md)[i] !== undefined && sh > 0.02) sw.d.push(col("swell_wave_direction", md)[i]);
+          var wh = col("wind_wave_height", md)[i];
+          if (wh !== null && wh !== undefined) { ww.h.push(wh); if (col("wind_wave_period", md)[i]) ww.p.push(col("wind_wave_period", md)[i]); if (col("wind_wave_direction", md)[i] !== null && col("wind_wave_direction", md)[i] !== undefined && wh > 0.02) ww.d.push(col("wind_wave_direction", md)[i]); }
+        }
+      });
+      function avg(a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : null; }
+      function r2(v) { return v === null ? null : Math.round(v * 100) / 100; }
+      var T = avg(tot), C = avg(comp), k = T !== null && C ? Math.max(0.6, Math.min(1.6, T / C)) : 1;
+      out.wave_height.push(r2(T)); out.wave_period.push(r2(avg(totPer))); out.wave_direction.push(totDir.length ? circMean(totDir) : null);
+      out.wave_height_min.push(tot.length ? Math.min.apply(null, tot) : null); out.wave_height_max.push(tot.length ? Math.max.apply(null, tot) : null); out.model_count.push(tot.length);
+      out.swell_wave_height.push(sw.h.length ? r2(avg(sw.h) * k) : null); out.swell_wave_period.push(r2(avg(sw.p))); out.swell_wave_direction.push(sw.d.length ? circMean(sw.d) : null);
+      out.wind_wave_height.push(ww.h.length ? r2(avg(ww.h) * k) : null); out.wind_wave_period.push(r2(avg(ww.p))); out.wind_wave_direction.push(ww.d.length ? circMean(ww.d) : null);
+    }
+    Object.keys(out).forEach(function (k2) { H[k2] = out[k2]; });
+    return m;
+  }
 
   function hasSwell(m) {
     if (!m || !m.hourly) return false;
@@ -626,12 +671,25 @@ footer a { color: var(--accent); }
     var params = {}; Object.keys(MARINE_PARAMS).forEach(function (k) { params[k] = MARINE_PARAMS[k]; });
     params.forecast_days = days;
     var base = "https://marine-api.open-meteo.com/v1/marine";
+    var seaP = {}; Object.keys(SEA_PARAMS).forEach(function (k) { seaP[k] = SEA_PARAMS[k]; }); seaP.forecast_days = days;
+    var seaReq = fetchPoints(base, seaP, spots.map(function (s) { return seaPoint(s, 6); })).catch(function () { return []; });
     return fetchPoints(base, params, spots.map(function (s) { return seaPoint(s, 6); })).then(function (res) {
+      res.forEach(ensembleMerge);
       var missing = [];
       res.forEach(function (m, i) { if (!hasSwell(m)) missing.push(i); });
       if (!missing.length) return res;
       return fetchPoints(base, params, missing.map(function (i) { return seaPoint(spots[i], 18); })).then(function (res2) {
+        res2.forEach(ensembleMerge);
         missing.forEach(function (i, k) { if (hasSwell(res2[k])) res[i] = res2[k]; });
+        return res;
+      });
+    }).then(function (res) {
+      return seaReq.then(function (sea) {
+        res.forEach(function (m, i) {
+          var sm = sea[i]; if (!m || !m.hourly || !sm || !sm.hourly) return;
+          var idx = {}; (sm.hourly.time || []).forEach(function (t, j) { idx[t] = j; });
+          ["sea_level_height_msl", "sea_surface_temperature"].forEach(function (v) { m.hourly[v] = (m.hourly.time || []).map(function (t) { var j = idx[t]; return j === undefined || !sm.hourly[v] ? null : sm.hourly[v][j]; }); });
+        });
         return res;
       });
     }).catch(function (err) {
@@ -748,6 +806,7 @@ footer a { color: var(--accent); }
             return {
               sh: mv("swell_wave_height", t), sp: mv("swell_wave_period", t), sd: mv("swell_wave_direction", t),
               wwh: mv("wind_wave_height", t), wwp: mv("wind_wave_period", t), wwd: mv("wind_wave_direction", t),
+              whMin: mv("wave_height_min", t), whMax: mv("wave_height_max", t), nModels: mv("model_count", t),
               wh: mv("wave_height", t), wp: mv("wave_period", t), wd: mv("wave_direction", t),
               ws: wv("wind_speed_10m", t), wdir: wv("wind_direction_10m", t), gust: wv("wind_gusts_10m", t),
               air: wv("temperature_2m", t), sst: mv("sea_surface_temperature", t)
@@ -1146,11 +1205,12 @@ footer a { color: var(--accent); }
         '<div class="strow"><span class="k" style="color:var(--accent)">Total waves</span><span class="v">' + hv(c.wh) + "<small>metres</small></span><span class=\"v\">" + hv(c.wp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wd)) + "<small>from</small></span></div>" +
         '<div class="strow"><span class="k" style="color:var(--sun)">Swell</span><span class="v">' + hv(c.sh) + "<small>metres</small></span><span class=\"v\">" + hv(c.sp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.sd)) + "<small>from</small></span></div>" +
         '<div class="strow"><span class="k" style="color:var(--rain)">Wind waves</span><span class="v">' + hv(c.wwh) + "<small>metres</small></span><span class=\"v\">" + hv(c.wwp) + "<small>seconds</small></span><span class=\"v\" style=\"font-size:15px\">" + esc(dirTxt(c.wwd)) + "<small>from</small></span></div>" +
+        (c.whMin !== null && c.whMin !== undefined ? '<p class="hint" style="margin:0">Average of ' + c.nModels + " wave models (Météo-France, ECMWF, NOAA GFS, DWD). They range from " + c.whMin.toFixed(1) + " to " + c.whMax.toFixed(1) + " m this hour" + (c.whMax - c.whMin > 0.5 ? ", so treat this one with caution." : ".") + "</p>" : "") +
         '<div class="slegend"><span><i style="border-color:var(--accent)"></i>Total</span><span><i style="border-color:var(--sun);border-top-style:dashed"></i>Swell</span><span><i style="border-color:var(--rain);border-top-style:dotted"></i>Wind waves</span></div>' +
         lineChart([{ v: tv, t: tt, col: "var(--accent)", fill: true }, { v: sv, t: tt, col: "var(--sun)", dash: "7 4" }, { v: wv, t: tt, col: "var(--rain)", dash: "2 4" }], n, "Wave height (m)", 2) +
         '<div class="shead"><span class="label">Next</span>' + btns + "</div>" +
         (tv[pk] !== null ? '<div style="font-weight:600;color:var(--fair)">Peak ' + hv(tv[pk]) + " m at " + esc(clock(rows[pk].h24)) + (rows[pk].d !== c.d ? " " + esc(model.days[rows[pk].d].wk) : "") + " · from " + esc(dirTxt(rows[pk].wd)) + "</div>" : "") +
-        '<p class="hint">Open-Meteo marine model for the sea just off ' + esc(s.name) + ". A forecast, not measured waves.</p></div>" +
+        '<p class="hint">Open-Meteo wave models for the sea just off ' + esc(s.name) + ". A forecast, not measured waves.</p></div>" +
         '<div class="sbox"><div class="label">Hour by hour</div><div class="htable"><table><thead><tr><th>Time</th><th>Total</th><th>Swell</th><th>Wind waves</th><th>Period</th><th>From</th></tr></thead><tbody>' +
         rows.map(function (r) { if (!r) return ""; return "<tr><td>" + esc((r.d !== c.d ? model.days[r.d].wk + " " : "") + clock(r.h24)) + '</td><td style="color:var(--accent);font-weight:600">' + hv(r.wh) + "</td><td>" + hv(r.sh) + "</td><td>" + hv(r.wwh) + "</td><td>" + hv(r.wp) + " s</td><td>" + (r.wd !== null ? arrowIcon(r.wd, "var(--fg)") + " " + esc(compass(r.wd)) : "–") + "</td></tr>"; }).join("") +
         "</tbody></table></div><p class=\"hint\">Heights in metres.</p></div>";
@@ -1223,7 +1283,7 @@ footer a { color: var(--accent); }
     var wq = "https://api.open-meteo.com/v1/forecast?" + qs({ latitude: s.lat, longitude: s.lon, hourly: "wind_speed_10m,wind_direction_10m,wind_gusts_10m", wind_speed_unit: "kn", timezone: TZ, past_days: 7, forecast_days: 1 });
     function marineAt(km) {
       var sp = seaPoint(s, km);
-      return getJSON("https://marine-api.open-meteo.com/v1/marine?" + qs({ latitude: sp.lat, longitude: sp.lon, hourly: MARINE_PARAMS.hourly, timezone: TZ, past_days: 7, forecast_days: 1 }));
+      return getJSON("https://marine-api.open-meteo.com/v1/marine?" + qs({ latitude: sp.lat, longitude: sp.lon, hourly: MARINE_PARAMS.hourly, models: MARINE_PARAMS.models, timezone: TZ, past_days: 7, forecast_days: 1 })).then(ensembleMerge);
     }
     return Promise.all([getJSON(wq), marineAt(6).then(function (m) { return hasSwell(m) ? m : marineAt(18); })]).then(function (r) {
       var w = r[0].hourly, m = r[1].hourly, wi = w.time.indexOf(t), mi = m.time.indexOf(t);
