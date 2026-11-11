@@ -213,6 +213,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .live-line { margin: 8px 14px 0; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.45; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 .live-line .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--wind-off); margin-top: 6px; }
 .live-line.stale .dot { background: var(--muted); }
+.go-alert { display: block; margin: 10px 0 2px; padding: 12px 14px; border-radius: 12px; background: var(--wind-off); color: #fff; font-family: var(--font-display); font-size: 21px; font-weight: 800; line-height: 1.2; text-align: left; }
+.go-alert small { display: block; font-family: var(--font-body, inherit); font-size: 13px; font-weight: 500; opacity: .95; margin-top: 4px; line-height: 1.4; }
 .live-scroll { max-height: 330px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .live-scroll thead th { position: sticky; top: 0; background: var(--surface); }
 .live-scroll tr:first-child td { font-weight: 600; }
@@ -474,14 +476,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 69 · cam link removed</span>
+    <span>App version 70 · Matakana live go-alert</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 69;
+  var APP_VERSION = 70;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1221,6 +1223,20 @@ footer a { color: var(--accent); }
     var k = windKind(s, { ws: r.tug_wind, wdir: r.tug_dir }), col = k === "offshore" ? "var(--wind-off)" : k === "onshore" ? "var(--wind-on)" : "var(--wind-other)";
     return '<span class="run-day" style="color:var(--fg)">Measured ' + esc(hm12(r.t.slice(11, 16))) + ': <b style="color:' + col + '">' + esc(k === "cross" ? "cross-shore" : k) + "</b> " + esc(r.tug_wind + " kts " + compass(r.tug_dir) + (r.tug_gust !== null ? ", gusts " + r.tug_gust : "")) + "</span>";
   }
+  /* Matakana Island go-alert from the measured harbour readings: offshore wind, mid to low tide, and
+     A-Beacon waves 0.4-0.8 m (longboard) or 0.8 m and up (shortboard) */
+  function matakanaAlertHTML(s) {
+    if (s.id !== "matakana") return "";
+    var rows = harbourRows(30); if (!rows.length) return "";
+    var r = rows[0].r;
+    if (r.tug_wind === null || r.tug_dir === null || r.wave_sig === null) return "";
+    if (r.tug_wind <= 0 || angDiff(r.tug_dir, s.offshore) > 40) return "";
+    var t = tideNow(s); if (!t || (t.level !== "Low" && t.level !== "Mid")) return "";
+    var long = r.wave_sig >= 0.4 && r.wave_sig < 0.8, short = r.wave_sig >= 0.8;
+    if (!long && !short) return "";
+    return '<span class="go-alert">' + (long ? "🏄 Great for longboarding at Matakana now" : "🏄 Good for shortboarding at Matakana now") +
+      "<small>Measured " + esc(hm12(r.t.slice(11, 16))) + ": offshore " + esc(r.tug_wind + " kts " + compass(r.tug_dir)) + " · waves " + r.wave_sig.toFixed(1) + " m at " + liveNum(r.wave_per, 1) + " s · " + esc(t.level.toLowerCase() + " tide, " + (t.rising ? "rising" : "falling")) + "</small></span>";
+  }
   function refreshLive(force) {
     loadHarbour(force).then(function (changed) {
       if (!changed || !model) return;
@@ -1608,7 +1624,7 @@ footer a { color: var(--accent); }
     /* Today only counts the hours still to come */
     var nowHr = +new Date().toLocaleString("en-NZ", { timeZone: TZ, hour: "numeric", hour12: false }) % 24;
     for (var d = 0; d < Math.min(H.daysAhead, model.days.length); d++) { var w = goodWindow(s, d, H, d === 0 && model.days[0].dow === "Today" ? nowHr : 0); if (w) days.push({ d: d, w: w }); }
-    el.innerHTML = '<button type="button" class="run" data-home="' + s.id + '"><span class="run-head"><b>' + esc(s.name) + "</b><span" + (days.length ? "" : ' style="color:var(--muted)"') + ">" + (days.length ? days.length + " good " + (days.length === 1 ? "session" : "sessions") : "nothing good") + " in the next " + (H.daysAhead === 1 ? "day" : H.daysAhead + " days") + "</span></span>" +
+    el.innerHTML = '<button type="button" class="run" data-home="' + s.id + '"><span class="run-head"><b>' + esc(s.name) + "</b><span" + (days.length ? "" : ' style="color:var(--muted)"') + ">" + (days.length ? days.length + " good " + (days.length === 1 ? "session" : "sessions") : "nothing good") + " in the next " + (H.daysAhead === 1 ? "day" : H.daysAhead + " days") + "</span></span>" + matakanaAlertHTML(s) +
       (days.length ? days.map(function (x) { var dy = model.days[x.d]; return '<span class="run-day">' + esc(dy.dow + ": " + (x.w.allOff ? "offshore " : "offshore or light ") + clock(x.w.start) + "–" + clock(x.w.end + 1) + " · " + x.w.swell.toFixed(1) + " m · " + x.w.wind + " kts") + "</span>"; }).join("")
         : '<span class="run-day">Needs ' + H.minSwell + " m swell and " + H.minHours + "+ hours offshore between " + clock(H.startHour) + " and " + clock(H.endHour) + ".</span>") + measuredNowHTML(s) + "</button>" + tideNowHTML(s);
   }
