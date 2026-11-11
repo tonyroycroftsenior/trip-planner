@@ -474,14 +474,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 67 · home card skips past hours, shows measured wind</span>
+    <span>App version 68 · Matakana Island added</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 67;
+  var APP_VERSION = 68;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -518,6 +518,7 @@ footer a { color: var(--accent); }
   var SPOTS_DEFAULT = [
     { id: "mount", name: "Mount Main Beach", region: "Mount Maunganui", lat: -37.632, lon: 176.180, offshore: 210, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/mt-maunganui-main-beach/5842041f4e65fad6a7708d84", slName: "Mt Maunganui Main Beach", sf: "https://www.surf-forecast.com/breaks/Taystreet", sfName: "Tay Street", port: "Tauranga" },
     { id: "taystreet", name: "Tay Street", region: "Mount Maunganui", lat: -37.650, lon: 176.200, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 0.1, ms: "tauranga", exp: 0.9, sl: "https://www.surfline.com/surf-report/tay-street/584204204e65fad6a7709670", slName: "Tay Street", sf: "https://www.surf-forecast.com/breaks/Taystreet", sfName: "Tay Street", port: "Tauranga" },
+    { id: "matakana", name: "Matakana Island", region: "Mount Maunganui", lat: -37.570, lon: 176.090, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.5, ms: "tauranga", exp: 1.0, sf: "https://www.surf-forecast.com/breaks/Matakana-Island", sfName: "Matakana Island", port: "Tauranga" },
     { id: "papamoa", name: "Papamoa", region: "Mount Maunganui", lat: -37.700, lon: 176.300, offshore: 225, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "any", rising: false, drive: 0.3, ms: "tauranga", sm: "https://www.swellmap.com/surf-forecasts/new-zealand/papamoa-beach", smName: "Papamoa Beach", exp: 1.0, sl: "https://www.surfline.com/surf-report/papamoa/6168a7a5cb771a17201e2362", slName: "Papamoa", sf: "https://www.surf-forecast.com/breaks/Arataki", sfName: "Arataki", port: "Tauranga" },
     { id: "ohope", name: "Ohope Beach", region: "Ohope", lat: -37.960, lon: 177.040, offshore: 202, swell: 22, width: 50, lo: 0.6, hi: 2.4, tide: "high", rising: false, drive: 1.3, ms: "ohope", sm: "https://www.swellmap.com/surfing/new-zealand/ohope-beach", smName: "Ohope Beach", exp: 0.9, sf: "https://www.surf-forecast.com/breaks/Ohope-Beach", sfName: "Ohope Beach", port: "Tauranga" },
     { id: "waihi", name: "Waihi Beach", region: "Coromandel", lat: -37.405, lon: 175.940, offshore: 240, swell: 60, width: 50, lo: 0.7, hi: 2.2, tide: "any", rising: false, drive: 1.0, ms: "waihi" , sm: "https://www.swellmap.com/surf-forecasts/new-zealand/waihi-beach", smName: "Waihi Beach", exp: 1.0, port: "Tauranga" },
