@@ -4,9 +4,14 @@ on:
   schedule:
     - cron: "41 17 * * *"   # 6:41am NZDT (5:41am NZST) every day
   workflow_dispatch:
+    inputs:
+      test:
+        description: "Just send a test push notification"
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write   # keeps the list of alerts already sent on the alerts-state branch
   issues: write
 
 jobs:
@@ -18,3 +23,7 @@ jobs:
         run: node .github/scripts/surf-alerts.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Phone push via the free ntfy app. Set the NTFY_TOPIC secret to your topic name;
+          # without it, alerts fall back to GitHub issues (which email you).
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TEST_PUSH: ${{ inputs.test }}

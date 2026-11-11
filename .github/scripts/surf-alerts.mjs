@@ -106,10 +106,23 @@ if (HOME.enabled && hi >= 0) {
 }
 console.log(`Found ${homeDays.length} good home session(s).`);
 
+if (process.env.TEST_PUSH === "true") {
+  if (!process.env.NTFY_TOPIC) { console.log("No NTFY_TOPIC secret set yet."); process.exit(1); }
+  const r = await fetch("https://ntfy.sh/", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ topic: process.env.NTFY_TOPIC, title: "Days Offshore", message: "Test: push notifications are working 🤙", click: APP_URL, tags: ["ocean"] }) });
+  console.log(r.ok ? "Test push sent." : "Test push failed: " + r.status);
+  process.exit(r.ok ? 0 : 1);
+}
 const repo = process.env.GITHUB_REPOSITORY, token = process.env.GITHUB_TOKEN, owner = process.env.GITHUB_REPOSITORY_OWNER;
 const gh = (path, opts = {}) => fetch("https://api.github.com/repos/" + repo + path, { ...opts, headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json", "Content-Type": "application/json" } });
 const existing = await (await gh("/issues?state=all&per_page=100")).json();
-const seen = (Array.isArray(existing) ? existing : []).map(i => i.title + "\n" + (i.body || "")).join("\n");
+// Alerts already sent: old GitHub issues plus the sent-alerts list kept on the alerts-state branch
+let sentKeys = [];
+try {
+  const st = await gh("/contents/sent.json?ref=alerts-state");
+  if (st.ok) sentKeys = JSON.parse(Buffer.from((await st.json()).content, "base64").toString("utf8")).keys || [];
+} catch (e) {}
+const seen = (Array.isArray(existing) ? existing : []).map(i => i.title + "\n" + (i.body || "")).join("\n") + "\n" + sentKeys.join("\n");
 
 // One notification per morning, listing only runs that haven't been sent before (keyed by region + first day)
 const fresh = runs.filter(r => {
@@ -134,5 +147,30 @@ const parts = [];
 if (homeSection) parts.push(homeSection);
 if (fresh.length) parts.push(`New runs of ${CFG.minDays}+ good days in a row:\n\n${sections.join("\n\n")}`);
 const body = `@${owner}\n\n${parts.join("\n\n")}\n\n[Open Days Offshore](${APP_URL})\n\n_Change what counts as good under Settings → Notifications in the app. Forecast from Open-Meteo._`;
-const res = await gh("/issues", { method: "POST", body: JSON.stringify({ title, body }) });
-console.log(res.ok ? "Sent: " + title : "Failed: " + res.status + " " + (await res.text()).slice(0, 200));
+const newKeys = [...fresh.map(r => `run:${r.region}|${r.days[0].date}`), ...freshHome.map(d => `home:${HOME.spot}|${d.date}`)];
+const topic = process.env.NTFY_TOPIC;
+if (topic) {
+  // Phone push notification through ntfy (free app: subscribe to the same topic name)
+  const plain = [
+    ...freshHome.map(d => `${homeName} ${fmtDay(d.date)}: offshore ${clock(d.w.start)}–${clock(d.w.end + 1)}, ${d.w.swell.toFixed(1)} m, ${d.w.wind} kts`),
+    ...fresh.map(r => `${r.region} ${fmtDay(r.days[0].date)} – ${fmtDay(r.days.at(-1).date)} (${r.days.length} days): ` + r.days.map(d => d.s.name).filter((v, i, a) => a.indexOf(v) === i).join(", "))
+  ].join("\n");
+  const res = await fetch("https://ntfy.sh/", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ topic, title, message: plain, click: APP_URL, tags: ["ocean"], priority: 3 }) });
+  console.log(res.ok ? "Pushed: " + title : "Push failed: " + res.status + " " + (await res.text()).slice(0, 200));
+  if (!res.ok) process.exit(1);
+  // Remember what was sent (rolling, newest 300) on the alerts-state branch
+  const keys = [...sentKeys, ...newKeys].slice(-300);
+  const cur = await gh("/contents/sent.json?ref=alerts-state");
+  const sha = cur.ok ? (await cur.json()).sha : undefined;
+  if (!cur.ok) {
+    const main = await (await gh("/git/ref/heads/main")).json();
+    await gh("/git/refs", { method: "POST", body: JSON.stringify({ ref: "refs/heads/alerts-state", sha: main.object.sha }) });
+  }
+  const put = await gh("/contents/sent.json", { method: "PUT", body: JSON.stringify({ message: "Sent alerts", branch: "alerts-state", sha,
+    content: Buffer.from(JSON.stringify({ keys }, null, 1)).toString("base64") }) });
+  console.log(put.ok ? "Saved sent list." : "Could not save sent list: " + put.status);
+} else {
+  const res = await gh("/issues", { method: "POST", body: JSON.stringify({ title, body }) });
+  console.log(res.ok ? "Sent: " + title : "Failed: " + res.status + " " + (await res.text()).slice(0, 200));
+}
