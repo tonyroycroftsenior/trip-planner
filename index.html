@@ -363,7 +363,7 @@ footer a { color: var(--accent); }
         <span><i style="background:var(--score-bad)"></i>Poor under 60</span>
         <span><i style="background:var(--wind-off)"></i>Offshore wind</span><span><i style="background:var(--wind-on)"></i>Onshore wind</span><span><i style="background:var(--wind-other)"></i>Cross-shore or light wind</span>
         <span>Surf ft: estimated breaking wave height</span>
-        <span>Board: LB longboard (0–2 ft), L/S either (1–2 ft), SB shortboard (anything over 2 ft)</span>
+        <span>Board (Matakana Island only): LB longboard (0.4–0.8 m), SB shortboard (0.8 m and up)</span>
       </div>
     </div>
     <div class="links" id="links"></div>
@@ -446,7 +446,7 @@ footer a { color: var(--accent); }
     <p>An estimate of the breaking wave height. It combines the swell and the local wind waves, allows for wave period (short period waves break smaller) and for how directly each one hits the beach, then adjusts for how exposed the spot is. It's calibrated against Surfline at Tay Street. If a spot reads too big or small, change Wave size adjust under Adjust this spot.</p>
 
     <h3>Which board</h3>
-    <p>Longboard for 0–1 and 0–2 ft. Either board for 1–2 ft. Shortboard once it goes over 2 ft.</p>
+    <p>Only shown for Matakana Island: longboard for 0.4–0.8 m waves, shortboard from 0.8 m up. Its live alert also needs offshore wind and a mid to low tide. Other spots don't suggest a board.</p>
 
     <h3>Wind words</h3>
     <p><b>Offshore</b> means the wind is within 40° of the spot's offshore direction. <b>Onshore</b> means it's blowing in from the sea side. Anything between is <b>cross-shore</b>, and 5 kts or less is <b>light</b>.</p>
@@ -476,14 +476,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 72 · Matakana rule only for Matakana</span>
+    <span>App version 73 · board advice only at Matakana</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 72;
+  var APP_VERSION = 73;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1253,8 +1253,7 @@ footer a { color: var(--accent); }
     if (ws === null || wdir === null || sw === null || ft === null || sw < H.minSwell) return "";
     var off = angDiff(wdir, s.offshore) <= 40, light = H.countLightWind && ws <= 5;
     if (!off && !light) return "";
-    var bd = board(ft); if (!bd) return "";
-    return '<span class="go-alert">Good for ' + esc(bd === "longboard or shortboard" ? "longboard or shortboard" : bd + "ing") + " at " + esc(s.name) + " now" +
+    return '<span class="go-alert">Good surf at ' + esc(s.name) + " now" +
       "<small>" + esc(src) + ": " + (off ? "offshore " : "light ") + esc(Math.round(ws) + " kts " + compass(wdir)) + " · " + esc(ftRange(ft)) + " (" + sw.toFixed(1) + " m)" + esc(tideTxt) + "</small></span>";
   }
   function refreshLive(force) {
@@ -1617,7 +1616,7 @@ footer a { color: var(--accent); }
       var badge = x.best ? '<span class="score-badge" style="background:' + TIER_FILL[tier(x.best.score)] + '">' + x.best.score + "</span>" : "";
       return '<button type="button" class="hw-day' + (x.good ? " good" : "") + '" aria-expanded="false" data-hwday="' + x.d + '"><span class="dname">' + esc(dy.dow) + "<small>" + esc(dy.short) + "</small></span>" +
         '<span class="wxs">' + (wx.tmax !== null ? miniSky(kind) + Math.round(wx.tmax) + "°" : "") + "</span>" +
-        '<span><span class="ft">' + (x.best ? esc(ftRange(x.best.ft)) : "–") + "</span>" + (x.best ? ' <span class="hint more" style="font-size:12px">best at ' + esc(clock(x.best.hour)) + " · " + board(x.best.ft) + (ftRange(x.maxFt) !== ftRange(x.best.ft) ? " · up to " + esc(ftRange(x.maxFt)) + " during the day" : "") + "</span>" : "") + "</span>" + '<span class="right">' + badge + '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
+        '<span><span class="ft">' + (x.best ? esc(ftRange(x.best.ft)) : "–") + "</span>" + (x.best ? ' <span class="hint more" style="font-size:12px">best at ' + esc(clock(x.best.hour)) + (spotBoard(s, x.best) ? " · " + spotBoard(s, x.best) : "") + (ftRange(x.maxFt) !== ftRange(x.best.ft) ? " · up to " + esc(ftRange(x.maxFt)) + " during the day" : "") + "</span>" : "") + "</span>" + '<span class="right">' + badge + '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
         '<span class="meta">' + esc(windSummary(s, x.d)) + (x.tides.length ? " · Tide " + esc(x.tides.join(", ")) : "") + (wx.rain >= 1 ? " · " + esc(SKY_WORD[kind].toLowerCase() + " " + Math.round(wx.rain) + " mm") : "") + "</span></button>";
     }).join("");
     /* Chart + conditions */
@@ -1671,7 +1670,7 @@ footer a { color: var(--accent); }
         '<div class="row"><span>Rain over the trip</span><span>' + top.rain + ' mm</span></div><ul class="plan">';
       top.daily.forEach(function (x) {
         var d = model.days[x.day];
-        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + clock(x.pick.slot.hour) + " (" + x.pick.slot.score + ") · " + ftRange(x.pick.slot.ft) + " · " + x.pick.slot.h.toFixed(1) + " m " + board(x.pick.slot.ft) + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
+        html += "<li><span>" + esc(d.wk) + " " + esc(d.d) + "</span><span>" + (x.pick ? esc(x.pick.spot.name) + ", " + clock(x.pick.slot.hour) + " (" + x.pick.slot.score + ") · " + ftRange(x.pick.slot.ft) + " · " + x.pick.slot.h.toFixed(1) + " m" + (spotBoard(x.pick.spot, x.pick.slot) ? " · " + spotBoard(x.pick.spot, x.pick.slot) : "") + dayWx(x) + '<span class="windline">' + esc(windSummary(x.pick.spot, x.day)) + "</span>" : "no swell data yet") + "</span></li>";
       });
       html += "</ul></div>";
     }
@@ -1692,6 +1691,13 @@ footer a { color: var(--accent); }
     return "LB/SB";
   }
   function board(ft) { return { LB: "longboard", "LB/SB": "longboard or shortboard", SB: "shortboard" }[boardCode(ft)] || ""; }
+  /* Board advice is only given at Matakana Island, on Tobias's rule: 0.4-0.8 m longboard, 0.8 m and up shortboard.
+     Other spots show no board. `x` is a forecast slot (x.h = wave height in metres). */
+  function spotBoardCode(s, x) {
+    if (!s || s.id !== "matakana" || !x || x.h === null || x.h === undefined || x.h < 0.4) return "";
+    return x.h < 0.8 ? "LB" : "SB";
+  }
+  function spotBoard(s, x) { return { LB: "longboard", SB: "shortboard" }[spotBoardCode(s, x)] || ""; }
   /* Rough breaking-wave face height in feet. Each wave train (swell and local wind waves) is scaled by period and by how
      directly it hits the beach, then combined. Calibrated against a Surfline reading at Tay Street (1.7 m 6 s NNE + 0.4 m 12 s N = 1-3 ft). */
   function trainFt(h, T, dir, s) {
@@ -1838,7 +1844,7 @@ footer a { color: var(--accent); }
     g += txt(4, Y.tide + Y.tideH / 2 + 3, "tide", { anchor: "start", size: 9 });
     g += txt(4, Y.rate + 14, "rating", { anchor: "start", size: 9 });
     g += txt(4, Y.ft, "surf ft", { anchor: "start", size: 9 });
-    g += txt(4, Y.board, "board", { anchor: "start", size: 9 });
+    if (s.id === "matakana") g += txt(4, Y.board, "board", { anchor: "start", size: 9 });
     for (var mm = 1; mm <= yMax; mm++) {
       g += '<line x1="' + PADL + '" x2="' + (W - 8) + '" y1="' + yOf(mm) + '" y2="' + yOf(mm) + '" style="stroke:var(--line);stroke-width:1"/>';
       g += txt(PADL - 6, yOf(mm) + 3, mm + "", { anchor: "end", size: 9 });
@@ -1888,7 +1894,7 @@ footer a { color: var(--accent); }
           var ty2 = x.score !== null ? tier(x.score) : "poor";
           var top = yOf(x.h);
           var tip = day.wk + " " + clock(x.hour) + ": " + x.h.toFixed(1) + " m, " + (x.p !== null ? Math.round(x.p) + " s" : "") + (x.d !== null ? " from " + compass(x.d) : "") +
-            (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "") + ", " + board(x.ft);
+            (x.c.ws !== null ? ", wind " + Math.round(x.c.ws) + " kn " + compass(x.c.wdir) + " (" + x.kind + ")" : "") + (x.score !== null ? ", score " + x.score : "") + (spotBoard(s, x) ? ", " + spotBoard(s, x) : "");
           g += '<rect x="' + (sx + 4) + '" y="' + top + '" width="' + (SW - 8) + '" height="' + Math.max(1, yOf(0) - top) + '" rx="2" style="fill:' + TIER_FILL[ty2] + '"><title>' + esc(tip) + "</title></rect>";
           g += txt(scx, top - 4, x.h.toFixed(1), { fill: "var(--fg)", size: 9 });
           if (x.d !== null) g += arrow(scx, Y.sdir, x.d, "var(--fg)", 0.85);
@@ -1908,7 +1914,7 @@ footer a { color: var(--accent); }
         }
         g += '<rect class="hit" data-slot="' + d + "," + k + '" x="' + sx + '" y="34" width="' + SW + '" height="' + (Y.end - 34) + '" style="fill:transparent;cursor:pointer"/>';
         if (x.h !== null) g += txt(scx, Y.ft, x.ft < 0.4 ? "flat" : ftRange(x.ft).replace(" ft", ""), { size: 9, fill: "var(--fg)", weight: 500 });
-        if (x.h !== null) { var bc = boardCode(x.ft); g += txt(scx, Y.board, bc === "LB/SB" ? "L/S" : bc, { size: 9, fill: bc === "SB" ? "var(--fg)" : bc === "LB" ? "var(--fair)" : "var(--accent)", weight: 500 }); }
+        if (x.h !== null && spotBoardCode(s, x)) { var bc = spotBoardCode(s, x); g += txt(scx, Y.board, bc, { size: 9, fill: bc === "SB" ? "var(--fg)" : bc === "LB" ? "var(--fair)" : "var(--accent)", weight: 500 }); }
       });
     });
     var svg = '<svg width="' + W + '" height="' + Y.end + '" viewBox="0 0 ' + W + " " + Y.end + '" role="img" aria-label="Swell, wind, tide and weather chart for ' + esc(s.name) + '">' + g + "</svg>";
@@ -1997,7 +2003,7 @@ footer a { color: var(--accent); }
     var windTxt = c.ws === null ? "no wind data" : Math.round(c.ws) + " kts " + compass(c.wdir) + (c.gust !== null ? ", gusts " + Math.round(c.gust) : "");
     var kindWord = { offshore: "Offshore", onshore: "Onshore", cross: "Cross-shore", light: "Light", unknown: "" }[x.kind];
     el.innerHTML = '<div class="facts"><div class="when">' + esc(day.wk + " " + day.d + " " + day.m + " · " + clock(x.hour)) + " · tap the chart to change</div>" +
-      '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + " · " + board(x.ft)) + "</div></div>" +
+      '<div><div class="label">Surf</div><div class="big">' + (x.h === null ? "–" : esc(ftRange(x.ft))) + '</div><div class="sub2">' + (x.h === null ? "no swell data" : esc(ftWords(x.ft)) + (spotBoard(s, x) ? " · " + spotBoard(s, x) : "")) + "</div></div>" +
       '<div><div class="label">Wind</div><div class="big" style="font-size:20px">' + esc(windTxt) + '</div><div class="sub2" style="color:' + windCol + ';font-weight:600">' + esc(kindWord) + "</div></div>" +
       '<div><div class="label">Swell</div><div class="lines">' + line("var(--sun)", c.sh, c.sp, c.sd, "swell") + line("var(--accent)", c.wwh, c.wwp, c.wwd, "wind waves") + "</div></div></div>" +
       '<div class="compass' + (linzKey() ? " sat" : "") + '"><div class="tiles">' + mapTiles(s.lat, s.lon, 200) + "</div>" + compassSVG(s, x) + '<span class="attr">' + (linzKey() ? "Imagery © LINZ CC BY 4.0" : "© OpenStreetMap") + "</span></div>";
