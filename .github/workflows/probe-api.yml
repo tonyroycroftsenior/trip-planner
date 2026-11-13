@@ -17,12 +17,15 @@ jobs:
             p.on('console', m => console.log('CONSOLE', m.type(), m.text().slice(0, 300)));
             p.on('pageerror', e => console.log('PAGEERROR', e.message, (e.stack || '').split('\n').slice(0, 4).join(' | ')));
             p.on('requestfailed', r => console.log('REQFAIL', r.failure() && r.failure().errorText, r.url().slice(0, 200)));
-            p.on('response', r => { const u = r.url(); if (/open-meteo|raw.githubusercontent|tides\//.test(u)) console.log('RESP', r.status(), u.slice(0, 120)); });
+            p.on('requestfinished', async r => { const u = r.url(); if (/open-meteo/.test(u)) { const sz = await r.sizes().catch(() => null); const t = r.timing(); console.log('DONE', sz && sz.responseBodySize, Math.round(t.responseEnd), u.slice(0, 90)); } });
             await p.goto('https://tonyroycroftsenior.github.io/trip-planner/?probe=' + Date.now(), { waitUntil: 'load' });
             for (const s of [5, 15, 30, 60]) {
               await p.waitForTimeout(s === 5 ? 5000 : (s === 15 ? 10000 : (s === 30 ? 15000 : 30000)));
               console.log('AT', s, 's FRESH', await p.evaluate(() => document.getElementById('fresh').textContent), 'OPTS', await p.evaluate(() => document.querySelectorAll('#hw-spot option').length), 'ERR', await p.evaluate(() => { const e = document.getElementById('error'); return e && !e.hidden ? e.textContent.slice(0, 200) : ''; }));
             }
+            console.log('CACHE', await p.evaluate(() => { try { const v = localStorage.getItem('surf-trip-forecast-v5'); return v ? v.length : 'none'; } catch (e) { return 'err ' + e.message; } }));
+            console.log('ALLKEYS', await p.evaluate(() => Object.keys(localStorage).map(k => k + ':' + localStorage.getItem(k).length).join(' ')));
+            const t0 = Date.now(); await p.evaluate(() => fetch(location.href.split('?')[0]));
             await b.close();
           })();
           JS
