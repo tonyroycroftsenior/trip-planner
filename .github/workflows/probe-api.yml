@@ -2,11 +2,11 @@ name: probe-api
 on: workflow_dispatch
 jobs:
   p:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - run: |
-          mkdir t && cd t && npm init -y >/dev/null && npm i playwright@1.47.2 2>&1 | tail -3
+          mkdir t && cd t && npm init -y >/dev/null && npm i playwright@1.55.0 2>&1 | tail -3
           npx playwright install --with-deps webkit 2>&1 | tail -3
           cat > run.js <<'JS'
           const { webkit, devices } = require('playwright');
