@@ -476,14 +476,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 73 · board advice only at Matakana</span>
+    <span>App version 74 · copes with patchy signal</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 73;
+  var APP_VERSION = 74;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -607,10 +607,23 @@ footer a { color: var(--accent); }
   /* ---------- Fetching ---------- */
   function qs(params) { return Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&"); }
 
-  function getJSON(url) {
-    return fetch(url).then(function (r) {
+  /* Each request gets 30 seconds, and one more try if it fails or times out (patchy phone signal) */
+  function getJSONOnce(url, ms) {
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, ms) : null;
+    return fetch(url, ctl ? { signal: ctl.signal } : undefined).then(function (r) {
       if (!r.ok) { return r.text().then(function (t) { var e = new Error("HTTP " + r.status + " " + t.slice(0, 200)); e.status = r.status; throw e; }); }
       return r.json();
+    }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) {
+      if (timer) clearTimeout(timer);
+      if (e && e.name === "AbortError") e = new Error("the forecast server took too long to answer");
+      throw e;
+    });
+  }
+  function getJSON(url) {
+    return getJSONOnce(url, 30000).catch(function (e) {
+      if (e && e.status && e.status >= 400 && e.status < 500 && e.status !== 429) throw e;
+      return new Promise(function (res) { setTimeout(res, 1500); }).then(function () { return getJSONOnce(url, 30000); });
     });
   }
 
@@ -2097,14 +2110,18 @@ footer a { color: var(--accent); }
 
   var linzReady = (function () { var y = +new Date().toLocaleDateString("en-CA", { timeZone: TZ }).slice(0, 4); return loadLinz([y, y + 1]); })();
   function loadForecast(force) {
-    linzReady.then(function () { loadForecastInner(force); }, function () { loadForecastInner(force); });
+    var go = function () { loadForecastInner(force); }, done = false;
+    var once = function () { if (!done) { done = true; go(); } };
+    linzReady.then(once, once);
+    setTimeout(once, 8000);   /* tide files slow: carry on, the model tides fill in */
   }
   function loadForecastInner(force) {
     var cached = load(CACHE_KEY);
     if (!force && cached && Date.now() - cached.fetchedAt < CACHE_MAX_AGE) {
       try { model = buildModel(cached); setFresh(); renderAll(true); return; } catch (e) {}
     }
-    document.getElementById("fresh").textContent = "Fetching the latest forecast…";
+    if (cached && !model) { try { model = buildModel(cached); renderAll(true); } catch (e) {} }
+    document.getElementById("fresh").textContent = cached ? "Showing the last saved forecast · fetching the latest…" : "Fetching the latest forecast…";
     document.getElementById("refresh").disabled = true;
     fetchAll().then(function (raw) {
       model = buildModel(raw);
