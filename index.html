@@ -476,14 +476,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 74 · copes with patchy signal</span>
+    <span>App version 75 · smaller saved forecast, clearer loading</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 74;
+  var APP_VERSION = 75;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -581,7 +581,9 @@ footer a { color: var(--accent); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function tier(s) { return s >= 80 ? "good" : (s >= 60 ? "fair" : "poor"); }
   var TIER_FILL = { good: "var(--score-good)", fair: "var(--score-ok)", poor: "var(--score-bad)" };
-  function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  /* Clear forecasts saved by older versions of the app (they filled up the phone's storage) */
+  try { ["surf-trip-forecast-v1", "surf-trip-forecast-v2", "surf-trip-forecast-v3", "surf-trip-forecast-v4"].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
   function load(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
 
   /* Spot settings with saved overrides */
@@ -692,6 +694,8 @@ footer a { color: var(--accent); }
       out.wind_wave_height.push(ww.h.length ? r2(avg(ww.h) * k) : null); out.wind_wave_period.push(r2(wavg(ww.p, ww.pw))); out.wind_wave_direction.push(ww.d.length ? circMean(ww.d, ww.dw) : null);
     }
     Object.keys(out).forEach(function (k2) { H[k2] = out[k2]; });
+    /* The per-model columns are no longer needed; dropping them keeps the saved forecast small enough for phone storage */
+    Object.keys(H).forEach(function (k2) { if (WAVE_MODELS.some(function (md) { return k2.slice(-md.length - 1) === "_" + md; })) delete H[k2]; });
     return m;
   }
 
@@ -1583,6 +1587,13 @@ footer a { color: var(--accent); }
     if (t && model) openSheet(t.getAttribute("data-sheet"), t.getAttribute("data-sid"));
   });
 
+  /* The home spot drop-down works before the forecast has loaded */
+  function fillSpotPicker() {
+    var cur = alertCfg.home.spot;
+    document.getElementById("hw-spot").innerHTML = REGIONS.map(function (r) {
+      return '<optgroup label="' + esc(r) + '">' + allSpots().filter(function (x) { return x.region === r; }).map(function (x) { return '<option value="' + x.id + '"' + (x.id === cur ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</optgroup>";
+    }).join("");
+  }
   function renderHomeTab() {
     if (!model) return;
     var s = spotById(alertCfg.home.spot) || allSpots()[0];
@@ -1594,9 +1605,7 @@ footer a { color: var(--accent); }
       for (var h = 6; h <= 10; h++) { var c = dd.hour(h); if (c.ws === null) continue; mornCount++; var k = windKind(s, c); if (k === "offshore" || k === "light") morning++; }
       stats.push({ d: d, best: best, maxFt: maxFt, good: goodWindow(s, d, alertCfg.home), wx: dd.wx, morningOff: mornCount && morning / mornCount >= 0.6, tides: tideTimes(dd) });
     }
-    document.getElementById("hw-spot").innerHTML = REGIONS.map(function (r) {
-      return '<optgroup label="' + esc(r) + '">' + allSpots().filter(function (x) { return x.region === r; }).map(function (x) { return '<option value="' + x.id + '"' + (x.id === s.id ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</optgroup>";
-    }).join("");
+    fillSpotPicker();
     document.getElementById("hw-sub").textContent = s.region + " · offshore " + compass(s.offshore) + " · best on " + compass(s.swell) + " swell";
     /* Analysis */
     var withData = stats.filter(function (x) { return x.best; });
@@ -2103,6 +2112,8 @@ footer a { color: var(--accent); }
     document.getElementById("fresh").textContent = "Forecast updated " + t.toLocaleString("en-NZ", { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
   }
 
+  window.addEventListener("error", function (e) { try { showError("Something went wrong in the app: " + (e.message || e) + " (version " + APP_VERSION + "). Send Claude a screenshot of this."); } catch (x) {} });
+  window.addEventListener("unhandledrejection", function (e) { try { showError("Something went wrong in the app: " + ((e.reason && e.reason.message) || e.reason) + " (version " + APP_VERSION + "). Send Claude a screenshot of this."); } catch (x) {} });
   function showError(msg) {
     var el = document.getElementById("error");
     el.textContent = msg; el.hidden = false;
@@ -2123,22 +2134,32 @@ footer a { color: var(--accent); }
     if (cached && !model) { try { model = buildModel(cached); renderAll(true); } catch (e) {} }
     document.getElementById("fresh").textContent = cached ? "Showing the last saved forecast · fetching the latest…" : "Fetching the latest forecast…";
     document.getElementById("refresh").disabled = true;
-    fetchAll().then(function (raw) {
+    var t0 = Date.now(), finished = false, baseTxt = document.getElementById("fresh").textContent;
+    var tick = setInterval(function () {
+      if (finished) return clearInterval(tick);
+      var secs = Math.round((Date.now() - t0) / 1000);
+      document.getElementById("fresh").textContent = baseTxt.replace(/…$/, "") + "… " + secs + " s";
+    }, 1000);
+    var limit = new Promise(function (res, rej) { setTimeout(function () { rej(new Error("no answer after 75 seconds")); }, 75000); });
+    Promise.race([Promise.resolve().then(fetchAll), limit]).then(function (raw) {
+      finished = true;
       model = buildModel(raw);
-      store(CACHE_KEY, raw);
+      if (!store(CACHE_KEY, raw)) { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
       document.getElementById("error").hidden = true;
       setFresh();
       state.start = Math.min(state.start, model.days.length - 1);
       state.end = Math.min(state.end, model.days.length - 1);
       renderAll(true);
     }).catch(function (err) {
+      finished = true;
+      document.getElementById("fresh").textContent = "Couldn't load the latest forecast";
       if (cached) {
         try { model = buildModel(cached); setFresh(); renderAll(true); } catch (e) {}
         showError("Couldn't fetch a new forecast, so this is the last one saved. Check your connection and tap Refresh forecast. (" + err.message + ")");
       } else {
         document.getElementById("best").innerHTML = "";
         document.getElementById("fresh").textContent = "No forecast loaded";
-        showError("Couldn't fetch the forecast. Check your connection and tap Refresh forecast. (" + err.message + ")");
+        showError("Couldn't fetch the forecast. Check your connection and tap Refresh forecast. (" + (err && err.message) + ", version " + APP_VERSION + ")");
       }
     }).then(function () { document.getElementById("refresh").disabled = false; });
   }
@@ -2383,6 +2404,7 @@ footer a { color: var(--accent); }
   showPage(location.hash.slice(1), true);
 
   renderOrigin();
+  try { fillSpotPicker(); } catch (e) {}
   loadForecast(false);
   /* Live harbour readings: on opening, when coming back to the app, and every 3 minutes while it's on screen */
   refreshLive(true);
