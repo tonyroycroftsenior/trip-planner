@@ -12,7 +12,7 @@ jobs:
           const { webkit, devices } = require('playwright');
           (async () => {
             const b = await webkit.launch();
-            const ctx = await b.newContext({ ...devices['iPhone 14'] });
+            const ctx = await b.newContext({ ...devices['iPhone 14'], timezoneId: 'Pacific/Auckland', locale: 'en-NZ' });
             const p = await ctx.newPage();
             p.on('console', m => console.log('CONSOLE', m.type(), m.text().slice(0, 300)));
             p.on('pageerror', e => console.log('PAGEERROR', e.message, (e.stack || '').split('\n').slice(0, 4).join(' | ')));
