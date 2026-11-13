@@ -1,0 +1,29 @@
+name: probe-api
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - run: |
+          mkdir t && cd t && npm init -y >/dev/null && npm i -s playwright@1.47.2 >/dev/null 2>&1
+          npx playwright install --with-deps webkit >/dev/null 2>&1
+          cat > run.js <<'JS'
+          const { webkit, devices } = require('playwright');
+          (async () => {
+            const b = await webkit.launch();
+            const ctx = await b.newContext({ ...devices['iPhone 14'] });
+            const p = await ctx.newPage();
+            p.on('console', m => console.log('CONSOLE', m.type(), m.text().slice(0, 300)));
+            p.on('pageerror', e => console.log('PAGEERROR', e.message, (e.stack || '').split('\n').slice(0, 4).join(' | ')));
+            p.on('requestfailed', r => console.log('REQFAIL', r.failure() && r.failure().errorText, r.url().slice(0, 200)));
+            p.on('response', r => { const u = r.url(); if (/open-meteo|raw.githubusercontent|tides\//.test(u)) console.log('RESP', r.status(), u.slice(0, 120)); });
+            await p.goto('https://tonyroycroftsenior.github.io/trip-planner/?probe=' + Date.now(), { waitUntil: 'load' });
+            for (const s of [5, 15, 30, 60]) {
+              await p.waitForTimeout(s === 5 ? 5000 : (s === 15 ? 10000 : (s === 30 ? 15000 : 30000)));
+              console.log('AT', s, 's FRESH', await p.evaluate(() => document.getElementById('fresh').textContent), 'OPTS', await p.evaluate(() => document.querySelectorAll('#hw-spot option').length), 'ERR', await p.evaluate(() => { const e = document.getElementById('error'); return e && !e.hidden ? e.textContent.slice(0, 200) : ''; }));
+            }
+            await b.close();
+          })();
+          JS
+          node run.js
