@@ -1,0 +1,14 @@
+name: probe-api
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in \
+            "https://marine-api.open-meteo.com/v1/marine?latitude=-37.6&longitude=176.25&hourly=wave_height&models=meteofrance_wave,ecmwf_wam,ncep_gfswave025,dwd_gwam&forecast_days=2" \
+            "https://marine-api.open-meteo.com/v1/marine?latitude=-37.6&longitude=176.25&hourly=sea_level_height_msl,sea_surface_temperature&forecast_days=2" \
+            "https://api.open-meteo.com/v1/forecast?latitude=-37.65&longitude=176.2&hourly=wind_speed_10m&forecast_days=2" \
+            "https://tonyroycroftsenior.github.io/trip-planner/" ; do
+            echo "== $u"; curl -sS -o body.txt -w "HTTP %{http_code} in %{time_total}s\n" --max-time 40 "$u"; head -c 300 body.txt; echo
+          done
