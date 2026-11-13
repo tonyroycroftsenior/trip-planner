@@ -5,7 +5,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
       - run: |
+          (python3 -m http.server 8000 >/dev/null 2>&1 &)
           mkdir t && cd t && npm init -y >/dev/null && npm i playwright@1.55.0 2>&1 | tail -3
           npx playwright install --with-deps webkit 2>&1 | tail -3
           cat > run.js <<'JS'
@@ -18,7 +20,7 @@ jobs:
             p.on('pageerror', e => console.log('PAGEERROR', e.message, (e.stack || '').split('\n').slice(0, 4).join(' | ')));
             p.on('requestfailed', r => console.log('REQFAIL', r.failure() && r.failure().errorText, r.url().slice(0, 200)));
             p.on('requestfinished', async r => { const u = r.url(); if (/open-meteo/.test(u)) { const sz = await r.sizes().catch(() => null); const t = r.timing(); console.log('DONE', sz && sz.responseBodySize, Math.round(t.responseEnd), u.slice(0, 90)); } });
-            await p.goto('https://tonyroycroftsenior.github.io/trip-planner/?probe=' + Date.now(), { waitUntil: 'load' });
+            await p.goto('http://localhost:8000/index.html?probe=' + Date.now(), { waitUntil: 'load' });
             for (const s of [5, 15, 30, 60]) {
               await p.waitForTimeout(s === 5 ? 5000 : (s === 15 ? 10000 : (s === 30 ? 15000 : 30000)));
               console.log('AT', s, 's FRESH', await p.evaluate(() => document.getElementById('fresh').textContent), 'OPTS', await p.evaluate(() => document.querySelectorAll('#hw-spot option').length), 'ERR', await p.evaluate(() => { const e = document.getElementById('error'); return e && !e.hidden ? e.textContent.slice(0, 200) : ''; }));
