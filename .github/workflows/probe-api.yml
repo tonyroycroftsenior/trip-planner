@@ -5,10 +5,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for u in \
-            "https://marine-api.open-meteo.com/v1/marine?latitude=-37.6&longitude=176.25&hourly=wave_height&models=meteofrance_wave,ecmwf_wam,ncep_gfswave025,dwd_gwam&forecast_days=2" \
-            "https://marine-api.open-meteo.com/v1/marine?latitude=-37.6&longitude=176.25&hourly=sea_level_height_msl,sea_surface_temperature&forecast_days=2" \
-            "https://api.open-meteo.com/v1/forecast?latitude=-37.65&longitude=176.2&hourly=wind_speed_10m&forecast_days=2" \
-            "https://tonyroycroftsenior.github.io/trip-planner/" ; do
-            echo "== $u"; curl -sS -o body.txt -w "HTTP %{http_code} in %{time_total}s\n" --max-time 40 "$u"; head -c 300 body.txt; echo
-          done
+          mkdir t && cd t && npm init -y >/dev/null && npm i -s playwright-core@1.47.2 >/dev/null 2>&1
+          cat > run.js <<'JS'
+          const { chromium } = require('playwright-core');
+          (async () => {
+            const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
+            const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+            p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('CONSOLE', m.type(), m.text().slice(0, 300)); });
+            p.on('pageerror', e => console.log('PAGEERROR', e.message, (e.stack || '').split('\n').slice(0, 3).join(' | ')));
+            p.on('requestfailed', r => console.log('REQFAIL', r.failure() && r.failure().errorText, r.url().slice(0, 200)));
+            p.on('response', r => { const u = r.url(); if (/open-meteo|raw.githubusercontent|tides\//.test(u)) console.log('RESP', r.status(), u.slice(0, 160)); });
+            await p.goto('https://tonyroycroftsenior.github.io/trip-planner/?probe=' + Date.now(), { waitUntil: 'load' });
+            await p.waitForTimeout(25000);
+            console.log('STATUS', await p.evaluate(() => (document.getElementById('status') || {}).textContent || document.body.innerText.slice(0, 200)));
+            console.log('SPOTOPTS', await p.evaluate(() => document.querySelectorAll('#hw-spot option').length));
+            await b.close();
+          })();
+          JS
+          node run.js
