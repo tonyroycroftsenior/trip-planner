@@ -1,0 +1,10 @@
+name: probe-size
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node .github/probe/size.mjs
