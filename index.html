@@ -215,6 +215,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .live-line.stale .dot { background: var(--muted); }
 .go-alert { display: block; margin: 10px 0 2px; padding: 12px 14px; border-radius: 12px; background: var(--wind-off); color: #fff; font-family: var(--font-display); font-size: 21px; font-weight: 800; line-height: 1.2; text-align: left; }
 .go-alert small { display: block; font-family: var(--font-body, inherit); font-size: 13px; font-weight: 500; opacity: .95; margin-top: 4px; line-height: 1.4; }
+.links-card > .label { margin: 0 0 8px; }
+.links-card { margin: 14px 0; }
 .live-scroll { max-height: 330px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .live-scroll thead th { position: sticky; top: 0; background: var(--surface); }
 .live-scroll tr:first-child td { font-weight: 600; }
@@ -327,7 +329,7 @@ footer a { color: var(--accent); }
       <div class="top"><div><div class="label">Hour by hour</div><h2>Swell, wind, tide and weather</h2></div><span class="label">scroll sideways · tap a time</span></div>
       <div class="scroll" id="hw-chart"></div>
     </div>
-    <div class="links" id="hw-links"></div>
+    <div class="links-card"><div class="label">Useful links</div><div class="links" id="hw-links"></div></div>
     <div class="sbox" id="sessions-box">
       <div class="shead"><div class="label">Your sessions</div><div class="range-btns"><button type="button" id="log-open2">Log a session</button><button type="button" id="log-export">Copy for Claude</button></div></div>
       <div id="calib"></div>
@@ -366,7 +368,7 @@ footer a { color: var(--accent); }
         <span>Board (Matakana Island only): LB longboard (0.4–0.8 m), SB shortboard (0.8 m and up)</span>
       </div>
     </div>
-    <div class="links" id="links"></div>
+    <div class="links-card"><div class="label">Useful links</div><div class="links" id="links"></div></div>
     <details class="settings" id="settings">
       <summary>Adjust this spot</summary>
       <p class="hint" style="margin-top:8px">Change these if the ratings don't match what you know about the spot. Changes are saved on this device.</p>
@@ -476,14 +478,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 77 · surf size refit to Surfline (3 days)</span>
+    <span>App version 78 · Useful links, Arataki cams</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 77;
+  var APP_VERSION = 78;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1975,6 +1977,7 @@ footer a { color: var(--accent); }
     return '<a class="primary" href="' + esc(smUrl) + '" target="_blank" rel="noopener">' + (s.smName ? "Swellmap · " + esc(s.smName) : "Swellmap map near " + esc(s.name)) + ' ↗</a>' +
       '<a href="' + esc(slUrl) + '" target="_blank" rel="noopener">' + (s.slName ? "Surfline · " + esc(s.slName) : "Surfline · " + esc(s.region) + " spots") + " ↗</a>" +
       (s.sf ? '<a href="' + esc(s.sf) + '" target="_blank" rel="noopener">Surf-forecast · ' + esc(s.sfName) + " ↗</a>" : "") +
+      (s.id === "taystreet" || s.id === "papamoa" ? '<a href="https://scissorlifttauranga.nz/surf-cams/" target="_blank" rel="noopener">Arataki scissor lift cams ↗</a>' : "") +
       '<a href="' + esc(windySwell) + '" target="_blank" rel="noopener">Windy swell ↗</a>' +
       '<a href="' + esc(windyWind) + '" target="_blank" rel="noopener">Windy wind ↗</a>' +
       '<a href="' + esc(ms.url) + '" target="_blank" rel="noopener">' + esc(ms.label) + " ↗</a>" +
