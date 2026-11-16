@@ -476,14 +476,14 @@ footer a { color: var(--accent); }
     <span class="brand-foot"><img src="logo.svg" alt=""><b>Days Offshore</b> · plan your days off around the swell</span>
     <span>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (swell, wind, tide and weather models). Tide predictions from LINZ (Toitū Te Whenua), nearest standard port.</span>
     <span>Spot settings are starting estimates from surf guides; adjust them under each spot. Drive times from places other than Mount Maunganui are rough estimates from distance.</span>
-    <span>App version 76 · retries stuck forecast requests</span>
+    <span>App version 77 · surf size refit to Surfline (3 days)</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var APP_VERSION = 76;
+  var APP_VERSION = 77;
   /* Phones keep old copies of the page. Check for a newer published version and load it. */
   (function checkForUpdate() {
     if (!window.fetch || location.protocol === "file:") return;
@@ -1746,23 +1746,28 @@ footer a { color: var(--accent); }
     var facing = (s.offshore + 180) % 360;
     var diff = dir === null || dir === undefined ? 45 : angDiff(dir, facing);
     /* Waves within 45 degrees of straight-on arrive almost in full; beyond that they wrap in much smaller
-       (tuned on Wainui, 10 Nov 2026: a 0.8 m 10 s due-south swell read 2-5 ft here when Surfline had 1-2 ft) */
+       (tuned on Wainui, 10 Nov 2026: a 0.8 m 10 s due-south swell, Surfline 1-2 ft) */
     var dirF = diff <= 45 ? Math.sqrt(Math.cos(diff * Math.PI / 180))
-      : diff >= 90 ? 0.03 : Math.max(0.03, Math.sqrt(Math.cos(Math.PI / 4)) * Math.pow(Math.cos(diff * Math.PI / 180) / Math.cos(Math.PI / 4), 4));
-    var perF = clamp(0.37 + (T - 6) * 0.17, 0.3, 1.6);
-    return h * 3.28 * perF * dirF;
+      : diff >= 90 ? 0.03 : Math.max(0.03, Math.sqrt(Math.cos(Math.PI / 4)) * Math.pow(Math.cos(diff * Math.PI / 180) / Math.cos(Math.PI / 4), 2));
+    /* Period hardly matters at the 5-8 s typical of the Bay; longer groundswell shoals up bigger */
+    var perF = clamp(1 + (T - 8) * 0.07, 1, 1.6);
+    return h * perF * dirF;
   }
-  /* Overall size calibration against Surfline at Tay Street: 1-3 ft on 10 Nov 2026 and 2-3 ft all day on 11 Nov 2026 */
-  var SIZE_CAL = 1.4;
+  /* Surf face height in feet from the combined wave height (metres) reaching the beach.
+     Fitted to Surfline at Tay Street (Tobias's reports): 1-3 ft on 10 Nov 2026 (0.4 m swell + 0.9 m wind sea),
+     2-3 ft on 11 Nov (1 m swell + 1 m wind sea) and 1-3 ft on 17 Nov (1 m 8 s swell, no wind sea).
+     Surfline's size follows the total sea height much more than the swell period at these sizes. */
+  var SIZE_A = 2.28;
   function surfFt(s, c) {
     var sw = trainFt(c.sh, c.sp, c.sd, s);
     var ww = c.wwh !== null && c.wwh !== undefined ? trainFt(c.wwh, c.wwp, c.wwd, s) : 0;
     if (!sw && !ww) sw = trainFt(c.wh, c.wp, c.wd, s);
-    return Math.sqrt(sw * sw + ww * ww) * (s.exp || 1) * SIZE_CAL;
+    var hs = Math.sqrt(sw * sw + ww * ww);
+    return hs > 0 ? SIZE_A * Math.pow(hs, 0.75) * (s.exp || 1) : 0;
   }
-  /* Surfline-style range: usually one foot wide at small sizes (2-3 ft), wider as it gets bigger */
+  /* Surfline-style range: 1-3 ft around 2 ft, 2-3 ft around 2.5 ft */
   function ftBounds(c) {
-    var lo = Math.max(0, Math.round(c * 0.8)), hi = Math.max(1, Math.round(c * 1.2));
+    var lo = Math.max(0, Math.floor(c * 0.8 + 0.15)), hi = Math.max(1, Math.ceil(c * 1.2 - 0.1));
     if (hi <= lo) hi = lo + 1;
     return [lo, hi];
   }
